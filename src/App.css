@@ -1,0 +1,143 @@
+/* Root element */
+#root {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 2rem;
+  text-align: center;
+}
+
+/* Full screen layout */
+.main-screen {
+  height: 100vh;
+  background-color: #141514;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Navbar */
+.navibar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 70px;
+  background-color: white;
+  z-index: 999;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: black;
+  font-weight: bold;
+  font-size: 35px;
+  text-align: center;
+  padding: 0 20px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+/* Content row: Spline + QR + Button */
+.content-row {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 40px;
+  margin-top: 100px; /* Below navbar */
+}
+
+/* Spline mini box */
+.mini {
+  margin-top: 100px;
+  height: 600px;
+  width: 600px;
+}
+
+/* White QR code box */
+.white-box {
+  margin-top: 100px;;
+  margin-left:-100px;
+  background-color: #FAF4E7;
+  padding: 40px 30px;
+  border-radius: 0px;
+  text-align: center;
+  max-width: 90%;
+  width: 700px;
+  box-shadow: 0 4px 20px rgba(255, 255, 255, 0.1);
+}
+
+/* Title text */
+.title {
+  font-size: 26px;
+  font-weight: bold;
+  color: black;
+  margin-bottom: 20px;
+}
+
+/* QR Image */
+.qr-image {
+  width: 250px;
+  border-radius: 12px;
+  margin-bottom: 20px;
+}
+
+/* Description text */
+.description {
+  font-size: 16px;
+  color: black;
+  font-weight: 400;
+  margin-top: 0;
+}
+
+/* Upload button styling */
+.upload-label {
+
+
+  display: inline-block;
+  width: 700px;
+  text-align: center;
+  margin-top: -10px;
+  background: linear-gradient(45deg, #00bfff,#00E8C5);
+  padding: 12px 0;
+  border: none;
+  color:#FAF4E7;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  box-shadow: 0 4px 15px rgba(0, 191, 255, 0.4);
+  transition: all 0.3s ease;
+}
+
+.upload-label:hover {
+  transform: scale(1.05);
+}
+
+/* Hide the default file input */
+.file-input {
+  display: none;
+}
+
+.highlight-orange {
+  color: orange;
+}
+
+/* Box below QR for file info */
+.bottombox {
+  margin-left:-700px;
+  margin-top: 39px;
+  height: 120px;
+  width: 700px;
+  background-color: #FAF4E7;
+  color: black;
+  font-weight: lighter;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Right-side column wrapper */
+.right-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
