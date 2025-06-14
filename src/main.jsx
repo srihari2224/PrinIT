@@ -5,6 +5,7 @@ import StartPage from "./pages/StartPage.jsx"
 import App from "./App.jsx"
 import FilesPage from "./pages/FilesPage.jsx"
 import PaymentPage from "./pages/PaymentPage.jsx"
+import AdminPage from "./pages/AdminPage.jsx"
 import "./index.css"
 
 ReactDOM.createRoot(document.getElementById("root")).render(
@@ -19,6 +20,8 @@ ReactDOM.createRoot(document.getElementById("root")).render(
         <Route path="/files" element={<FilesPage />} />
         {/* Route for the payment and printing page */}
         <Route path="/payment" element={<PaymentPage />} />
+        {/* Route for the admin page */}
+        <Route path="/admin" element={<AdminPage />} />
       </Routes>
     </BrowserRouter>
   </React.StrictMode>,

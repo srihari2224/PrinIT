@@ -191,6 +191,12 @@ function StartPage() {
           </button>
         </div>
 
+        <div className="admin-access">
+          <button className="admin-btn" onClick={() => navigate("/admin")}>
+            Admin Access
+          </button>
+        </div>
+
         <div className="footer-bottom">
           <p>&copy; 2024 PrinIT. All rights reserved.</p>
         </div>
