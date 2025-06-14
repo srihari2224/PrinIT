@@ -62,31 +62,84 @@ function FilesPage() {
     ),
   }
 
-  // Function to get PDF page count
+  // Function to get accurate PDF page count using PDF.js
   const getPDFPageCount = async (file) => {
     return new Promise((resolve) => {
       const reader = new FileReader()
-      reader.onload = function () {
-        const typedArray = new Uint8Array(this.result)
-
-        // Simple PDF page count detection
-        // Look for /Count in the PDF structure
-        const text = String.fromCharCode.apply(null, typedArray)
-        const matches = text.match(/\/Count\s+(\d+)/g)
-
-        if (matches && matches.length > 0) {
-          // Get the highest count found
-          const counts = matches.map((match) => Number.parseInt(match.match(/\d+/)[0]))
-          const pageCount = Math.max(...counts)
-          resolve(pageCount > 0 ? pageCount : 1)
-        } else {
-          // Fallback: count page objects
-          const pageMatches = text.match(/\/Type\s*\/Page[^s]/g)
-          resolve(pageMatches ? pageMatches.length : 1)
+      reader.onload = async function () {
+        try {
+          // Load PDF.js if not already loaded
+          if (!window.pdfjsLib) {
+            const script = document.createElement("script")
+            script.src = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"
+            script.onload = async () => {
+              try {
+                const pdf = await window.pdfjsLib.getDocument({ data: this.result }).promise
+                resolve(pdf.numPages)
+              } catch (error) {
+                console.error("Error loading PDF:", error)
+                resolve(1)
+              }
+            }
+            document.head.appendChild(script)
+          } else {
+            // PDF.js is already loaded
+            const pdf = await window.pdfjsLib.getDocument({ data: this.result }).promise
+            resolve(pdf.numPages)
+          }
+        } catch (error) {
+          console.error("Error reading PDF:", error)
+          resolve(1)
         }
       }
-      reader.onerror = () => resolve(1) // Default to 1 page on error
+      reader.onerror = () => resolve(1)
       reader.readAsArrayBuffer(file)
+    })
+  }
+
+  // Function to get Word document page count (approximation)
+  const getWordDocPageCount = async (file) => {
+    return new Promise((resolve) => {
+      const reader = new FileReader()
+      reader.onload = function () {
+        try {
+          const text = this.result
+
+          // For .docx files, look for page break indicators
+          if (file.name.toLowerCase().endsWith(".docx")) {
+            // Count page breaks in DOCX (this is an approximation)
+            const pageBreaks = (text.match(/w:br[^>]*w:type="page"/g) || []).length
+            const estimatedPages = Math.max(1, pageBreaks + 1)
+
+            // Also estimate based on content length (rough approximation)
+            const contentLength = text.length
+            const wordsApprox = contentLength / 6 // Average word length
+            const pagesFromContent = Math.ceil(wordsApprox / 250) // ~250 words per page
+
+            // Use the higher estimate but cap at reasonable limit
+            const finalCount = Math.min(Math.max(estimatedPages, pagesFromContent), 50)
+            resolve(finalCount)
+          } else {
+            // For .doc files, estimate based on file size
+            const fileSizeKB = file.size / 1024
+            const estimatedPages = Math.max(1, Math.ceil(fileSizeKB / 50)) // ~50KB per page
+            resolve(Math.min(estimatedPages, 50))
+          }
+        } catch (error) {
+          console.error("Error reading Word document:", error)
+          // Fallback: estimate based on file size
+          const fileSizeKB = file.size / 1024
+          const estimatedPages = Math.max(1, Math.ceil(fileSizeKB / 50))
+          resolve(Math.min(estimatedPages, 20))
+        }
+      }
+      reader.onerror = () => {
+        // Fallback: estimate based on file size
+        const fileSizeKB = file.size / 1024
+        const estimatedPages = Math.max(1, Math.ceil(fileSizeKB / 50))
+        resolve(Math.min(estimatedPages, 10))
+      }
+      reader.readAsText(file)
     })
   }
 
@@ -486,13 +539,32 @@ function FilesPage() {
   const showFileOptions = async (file) => {
     let pageCount = 1
 
-    // Get actual page count for PDF files
-    if (file.type === "application/pdf") {
-      pageCount = await getPDFPageCount(file)
-    } else {
-      // For other document types, you might want to implement similar logic
-      // For now, we'll use a reasonable default
-      pageCount = Math.floor(Math.random() * 10) + 1
+    try {
+      // Get actual page count for different file types
+      if (file.type === "application/pdf") {
+        console.log("Counting PDF pages for:", file.name)
+        pageCount = await getPDFPageCount(file)
+        console.log("PDF page count:", pageCount)
+      } else if (
+        file.type === "application/msword" ||
+        file.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+      ) {
+        console.log("Counting Word document pages for:", file.name)
+        pageCount = await getWordDocPageCount(file)
+        console.log("Word document page count:", pageCount)
+      } else {
+        // For other file types, estimate based on file size
+        const fileSizeKB = file.size / 1024
+        if (fileSizeKB > 100) {
+          pageCount = Math.max(1, Math.ceil(fileSizeKB / 100)) // Conservative estimate
+        } else {
+          pageCount = 1
+        }
+        console.log("Estimated page count for", file.name, ":", pageCount)
+      }
+    } catch (error) {
+      console.error("Error counting pages:", error)
+      pageCount = 1
     }
 
     setFileOptions({
