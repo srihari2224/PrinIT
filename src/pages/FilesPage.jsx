@@ -62,6 +62,34 @@ function FilesPage() {
     ),
   }
 
+  // Function to get PDF page count
+  const getPDFPageCount = async (file) => {
+    return new Promise((resolve) => {
+      const reader = new FileReader()
+      reader.onload = function () {
+        const typedArray = new Uint8Array(this.result)
+
+        // Simple PDF page count detection
+        // Look for /Count in the PDF structure
+        const text = String.fromCharCode.apply(null, typedArray)
+        const matches = text.match(/\/Count\s+(\d+)/g)
+
+        if (matches && matches.length > 0) {
+          // Get the highest count found
+          const counts = matches.map((match) => Number.parseInt(match.match(/\d+/)[0]))
+          const pageCount = Math.max(...counts)
+          resolve(pageCount > 0 ? pageCount : 1)
+        } else {
+          // Fallback: count page objects
+          const pageMatches = text.match(/\/Type\s*\/Page[^s]/g)
+          resolve(pageMatches ? pageMatches.length : 1)
+        }
+      }
+      reader.onerror = () => resolve(1) // Default to 1 page on error
+      reader.readAsArrayBuffer(file)
+    })
+  }
+
   // Handle adding a new page
   const addNewPage = () => {
     const newPage = {
@@ -455,10 +483,17 @@ function FilesPage() {
   })
 
   // Add function to show file options
-  const showFileOptions = (file) => {
-    // In a real app, we would get the actual page count from the file
-    // For this demo, we'll use a random number between 1-20
-    const pageCount = Math.floor(Math.random() * 20) + 1
+  const showFileOptions = async (file) => {
+    let pageCount = 1
+
+    // Get actual page count for PDF files
+    if (file.type === "application/pdf") {
+      pageCount = await getPDFPageCount(file)
+    } else {
+      // For other document types, you might want to implement similar logic
+      // For now, we'll use a reasonable default
+      pageCount = Math.floor(Math.random() * 10) + 1
+    }
 
     setFileOptions({
       showModal: true,
@@ -474,6 +509,25 @@ function FilesPage() {
     })
   }
 
+  // Function to calculate cost for double-sided printing
+  const calculateDoubleSidedCost = (totalPages, isColor, isDoubleSided) => {
+    if (!isDoubleSided) {
+      // Single-sided printing
+      return totalPages * (isColor ? 10 : 2)
+    }
+
+    // Double-sided printing
+    if (isColor) {
+      // Color: ₹10 per side
+      return totalPages * 10
+    } else {
+      // B&W double-sided: ₹3 per sheet (2 pages), ₹2 for remaining single page
+      const fullSheets = Math.floor(totalPages / 2)
+      const remainingPages = totalPages % 2
+      return fullSheets * 3 + remainingPages * 2
+    }
+  }
+
   // Add function to add file to print queue
   const addFileToPrintQueue = () => {
     // Calculate pages to print based on range
@@ -485,20 +539,12 @@ function FilesPage() {
       pagesToPrint = fileOptions.printSettings.endPage - fileOptions.printSettings.startPage + 1
     }
 
-    // Calculate cost for double-sided printing
-    let itemCost = 0
-    if (fileOptions.printSettings.colorMode === "color") {
-      itemCost = pagesToPrint * 10 // 10 Rs per page for color
-    } else {
-      if (fileOptions.printSettings.doubleSided) {
-        // For double-sided: calculate sheets needed
-        const sheetsNeeded = Math.floor(pagesToPrint / 2)
-        const remainingPages = pagesToPrint % 2
-        itemCost = sheetsNeeded * 3 + remainingPages * 2 // 3 Rs per sheet for double-sided, 2 Rs for remaining single page
-      } else {
-        itemCost = pagesToPrint * 2 // 2 Rs per page for single-sided
-      }
-    }
+    // Calculate cost using the new function
+    const itemCost = calculateDoubleSidedCost(
+      pagesToPrint,
+      fileOptions.printSettings.colorMode === "color",
+      fileOptions.printSettings.doubleSided,
+    )
 
     // Add to print queue
     setPrintQueue([
@@ -518,20 +564,59 @@ function FilesPage() {
   // Add print queue state
   const [printQueue, setPrintQueue] = useState([])
 
+  // Function to calculate canvas pages cost with custom range
+  const calculateCanvasPagesCost = () => {
+    let totalCost = 0
+
+    if (pages.length === 0) return 0
+
+    let pagesToCalculate = []
+
+    if (printSettings.pageRange === "all") {
+      pagesToCalculate = pages
+    } else {
+      // Custom range
+      const startPage = Math.max(1, printSettings.startPage)
+      const endPage = Math.min(pages.length, printSettings.endPage)
+
+      for (let i = startPage; i <= endPage; i++) {
+        const page = pages.find((p) => p.id === i)
+        if (page) {
+          pagesToCalculate.push(page)
+        }
+      }
+    }
+
+    if (!printSettings.doubleSided) {
+      // Single-sided printing
+      pagesToCalculate.forEach((page) => {
+        totalCost += page.colorMode === "color" ? 10 : 2
+      })
+    } else {
+      // Double-sided printing - group pages by color mode
+      const colorPages = pagesToCalculate.filter((page) => page.colorMode === "color")
+      const bwPages = pagesToCalculate.filter((page) => page.colorMode === "bw")
+
+      // Color pages: ₹10 per page (each side)
+      totalCost += colorPages.length * 10
+
+      // B&W pages: ₹3 per sheet (2 pages), ₹2 for remaining single page
+      if (bwPages.length > 0) {
+        const fullSheets = Math.floor(bwPages.length / 2)
+        const remainingPages = bwPages.length % 2
+        totalCost += fullSheets * 3 + remainingPages * 2
+      }
+    }
+
+    return totalCost
+  }
+
   // Calculate total cost
   const calculateCost = () => {
     let totalCost = 0
 
-    // Cost for canvas pages - only if they exist
-    if (pages.length > 0) {
-      pages.forEach((page) => {
-        if (page.colorMode === "color") {
-          totalCost += 10 // 10 Rs for color
-        } else {
-          totalCost += printSettings.doubleSided ? 3 : 2 // 3 Rs for double-sided, 2 Rs for single-sided
-        }
-      })
-    }
+    // Cost for canvas pages
+    totalCost += calculateCanvasPagesCost()
 
     // Cost for print queue items - use pre-calculated costs
     printQueue.forEach((item) => {
@@ -551,6 +636,14 @@ function FilesPage() {
     startPage: 1,
     endPage: pages.length,
   })
+
+  // Update print settings when pages change
+  useEffect(() => {
+    setPrintSettings((prev) => ({
+      ...prev,
+      endPage: pages.length,
+    }))
+  }, [pages.length])
 
   // Get current page
   const currentPage = pages.find((page) => page.id === activePage) || pages[0]
@@ -1009,15 +1102,41 @@ function FilesPage() {
                       {pages.length > 0 && (
                         <div className="cost-section">
                           <h5>Canvas Pages</h5>
-                          {pages.map((page) => (
-                            <div key={page.id} className="cost-item">
-                              <span>
-                                Page {page.id} ({page.colorMode === "color" ? "Color" : "B&W"},{" "}
-                                {printSettings.doubleSided ? "Double-sided" : "Single-sided"})
-                              </span>
-                              <span>₹{page.colorMode === "color" ? 10 : printSettings.doubleSided ? 3 : 2}</span>
-                            </div>
-                          ))}
+                          {(() => {
+                            let pagesToShow = []
+                            if (printSettings.pageRange === "all") {
+                              pagesToShow = pages
+                            } else {
+                              const startPage = Math.max(1, printSettings.startPage)
+                              const endPage = Math.min(pages.length, printSettings.endPage)
+
+                              for (let i = startPage; i <= endPage; i++) {
+                                const page = pages.find((p) => p.id === i)
+                                if (page) {
+                                  pagesToShow.push(page)
+                                }
+                              }
+                            }
+
+                            return pagesToShow.map((page) => (
+                              <div key={page.id} className="cost-item">
+                                <span>
+                                  Page {page.id} ({page.colorMode === "color" ? "Color" : "B&W"},{" "}
+                                  {printSettings.doubleSided ? "Double-sided" : "Single-sided"})
+                                </span>
+                                <span>
+                                  ₹
+                                  {printSettings.doubleSided
+                                    ? page.colorMode === "color"
+                                      ? 10
+                                      : 3
+                                    : page.colorMode === "color"
+                                      ? 10
+                                      : 2}
+                                </span>
+                              </div>
+                            ))
+                          })()}
                         </div>
                       )}
 
