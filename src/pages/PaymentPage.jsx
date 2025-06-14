@@ -34,7 +34,7 @@ function PaymentPage() {
   // Handle the payment process
   const handlePayment = () => {
     const options = {
-      key: "rzp_live_YOUR_LIVE_KEY_HERE", // Replace with your actual live Razorpay key
+      key: "rzp_live_LyazQXwGOFAmly", // Replace with your actual live Razorpay key
       amount: totalCost * 100, // Amount in paise
       currency: "INR",
       name: "Print Service",

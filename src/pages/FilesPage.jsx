@@ -126,49 +126,183 @@ function FilesPage() {
     })
   }
 
-  // Function to get Word document page count (approximation)
+  // Function to get Word document page count (much more accurate analysis)
   const getWordDocPageCount = async (file) => {
     return new Promise((resolve) => {
+      console.log("Analyzing Word document:", file.name, "Size:", (file.size / 1024).toFixed(1), "KB")
+
       const reader = new FileReader()
       reader.onload = function () {
         try {
-          const text = this.result
+          const arrayBuffer = this.result
+          const fileName = file.name.toLowerCase()
 
-          // For .docx files, look for page break indicators
-          if (file.name.toLowerCase().endsWith(".docx")) {
-            // Count page breaks in DOCX (this is an approximation)
-            const pageBreaks = (text.match(/w:br[^>]*w:type="page"/g) || []).length
-            const estimatedPages = Math.max(1, pageBreaks + 1)
+          if (fileName.endsWith(".docx")) {
+            // DOCX files - more sophisticated analysis
+            try {
+              const uint8Array = new Uint8Array(arrayBuffer)
+              const textDecoder = new TextDecoder("utf-8", { fatal: false })
+              const content = textDecoder.decode(uint8Array)
 
-            // Also estimate based on content length (rough approximation)
-            const contentLength = text.length
-            const wordsApprox = contentLength / 6 // Average word length
-            const pagesFromContent = Math.ceil(wordsApprox / 250) // ~250 words per page
+              // Look for explicit page breaks
+              const pageBreakPatterns = [
+                /<w:br[^>]*w:type="page"[^>]*\/>/g,
+                /<w:lastRenderedPageBreak\/>/g,
+                /<w:pageBreakBefore\/>/g,
+                /<w:sectPr>/g, // Section breaks often indicate new pages
+              ]
 
-            // Use the higher estimate but cap at reasonable limit
-            const finalCount = Math.min(Math.max(estimatedPages, pagesFromContent), 50)
-            resolve(finalCount)
-          } else {
-            // For .doc files, estimate based on file size
+              let explicitPageBreaks = 0
+              pageBreakPatterns.forEach((pattern) => {
+                const matches = content.match(pattern)
+                if (matches) explicitPageBreaks += matches.length
+              })
+
+              // Count content indicators
+              const paragraphs = (content.match(/<w:p[^>]*>/g) || []).length
+              const textRuns = (content.match(/<w:t[^>]*>.*?<\/w:t>/g) || []).length
+              const tables = (content.match(/<w:tbl>/g) || []).length
+              const images = (content.match(/<w:drawing>/g) || []).length
+
+              // Calculate content density score
+              const fileSizeKB = file.size / 1024
+              let estimatedPages = 1
+
+              if (explicitPageBreaks > 0) {
+                // Use explicit page breaks as primary indicator
+                estimatedPages = explicitPageBreaks + 1
+              } else {
+                // Advanced estimation based on content analysis
+                if (fileSizeKB < 25) {
+                  estimatedPages = 1
+                } else if (fileSizeKB < 50) {
+                  // Small documents
+                  estimatedPages = Math.max(1, Math.ceil(paragraphs / 20))
+                } else if (fileSizeKB < 100) {
+                  // Medium documents
+                  const contentScore = paragraphs * 0.8 + tables * 5 + images * 3
+                  estimatedPages = Math.max(1, Math.ceil(contentScore / 25))
+                } else if (fileSizeKB < 300) {
+                  // Large documents
+                  const contentScore = paragraphs * 0.6 + tables * 4 + images * 2
+                  estimatedPages = Math.max(2, Math.ceil(contentScore / 20))
+                } else if (fileSizeKB < 500) {
+                  // Very large documents
+                  estimatedPages = Math.max(3, Math.ceil(fileSizeKB / 40))
+                } else {
+                  // Huge documents
+                  estimatedPages = Math.max(5, Math.ceil(fileSizeKB / 50))
+                }
+
+                // Adjust for text density
+                if (textRuns > 0 && paragraphs > 0) {
+                  const textDensity = textRuns / paragraphs
+                  if (textDensity > 4) {
+                    estimatedPages = Math.ceil(estimatedPages * 1.3) // Very dense text
+                  } else if (textDensity < 1.5) {
+                    estimatedPages = Math.ceil(estimatedPages * 0.7) // Sparse text
+                  }
+                }
+              }
+
+              // Final bounds checking
+              estimatedPages = Math.min(Math.max(estimatedPages, 1), 100)
+
+              console.log(`DOCX Analysis - ${file.name}:`)
+              console.log(`- Size: ${fileSizeKB.toFixed(1)}KB`)
+              console.log(`- Explicit page breaks: ${explicitPageBreaks}`)
+              console.log(`- Paragraphs: ${paragraphs}, Text runs: ${textRuns}`)
+              console.log(`- Tables: ${tables}, Images: ${images}`)
+              console.log(`- Final estimated pages: ${estimatedPages}`)
+
+              resolve(estimatedPages)
+            } catch (error) {
+              console.error("Error parsing DOCX:", error)
+              // Improved fallback
+              const fileSizeKB = file.size / 1024
+              const fallbackPages = Math.max(1, Math.min(Math.ceil(fileSizeKB / 25), 20))
+              resolve(fallbackPages)
+            }
+          } else if (fileName.endsWith(".doc")) {
+            // DOC files - binary analysis with better heuristics
             const fileSizeKB = file.size / 1024
-            const estimatedPages = Math.max(1, Math.ceil(fileSizeKB / 50)) // ~50KB per page
-            resolve(Math.min(estimatedPages, 50))
+            let estimatedPages
+
+            // More accurate DOC estimation based on file size patterns
+            if (fileSizeKB < 30) {
+              estimatedPages = 1
+            } else if (fileSizeKB < 60) {
+              estimatedPages = 2
+            } else if (fileSizeKB < 120) {
+              estimatedPages = Math.ceil(fileSizeKB / 35) // ~35KB per page
+            } else if (fileSizeKB < 300) {
+              estimatedPages = Math.ceil(fileSizeKB / 45) // ~45KB per page
+            } else if (fileSizeKB < 600) {
+              estimatedPages = Math.ceil(fileSizeKB / 55) // ~55KB per page
+            } else {
+              estimatedPages = Math.ceil(fileSizeKB / 70) // ~70KB per page
+            }
+
+            // Binary pattern analysis for page breaks
+            try {
+              const uint8Array = new Uint8Array(arrayBuffer)
+              let pageBreakIndicators = 0
+
+              // Look for page break patterns in DOC binary
+              for (let i = 0; i < uint8Array.length - 8; i++) {
+                // Form feed character (0x0C)
+                if (uint8Array[i] === 0x0c) pageBreakIndicators++
+
+                // DOC page break signatures
+                if (
+                  uint8Array[i] === 0x01 &&
+                  uint8Array[i + 1] === 0x00 &&
+                  uint8Array[i + 2] === 0x00 &&
+                  uint8Array[i + 3] === 0x00
+                ) {
+                  pageBreakIndicators++
+                }
+              }
+
+              if (pageBreakIndicators > 0) {
+                const binaryEstimate = Math.min(pageBreakIndicators + 1, estimatedPages * 1.5)
+                estimatedPages = Math.max(estimatedPages, Math.ceil(binaryEstimate))
+              }
+            } catch (error) {
+              console.log("Binary analysis failed for DOC file")
+            }
+
+            // Final bounds
+            estimatedPages = Math.min(Math.max(estimatedPages, 1), 100)
+
+            console.log(`DOC Analysis - ${file.name}:`)
+            console.log(`- Size: ${fileSizeKB.toFixed(1)}KB`)
+            console.log(`- Estimated pages: ${estimatedPages}`)
+
+            resolve(estimatedPages)
+          } else {
+            // Other document types
+            const fileSizeKB = file.size / 1024
+            const estimatedPages = Math.max(1, Math.min(Math.ceil(fileSizeKB / 40), 50))
+            resolve(estimatedPages)
           }
         } catch (error) {
-          console.error("Error reading Word document:", error)
-          // Fallback: estimate based on file size
+          console.error("Error analyzing document:", error)
+          // Ultimate fallback
           const fileSizeKB = file.size / 1024
-          const estimatedPages = Math.max(1, Math.ceil(fileSizeKB / 50))
-          resolve(Math.min(estimatedPages, 20))
+          const fallbackPages = Math.max(1, Math.min(Math.ceil(fileSizeKB / 40), 20))
+          resolve(fallbackPages)
         }
       }
-      reader.onerror = () => {
-        // Fallback: estimate based on file size
+
+      reader.onerror = (error) => {
+        console.error("FileReader error:", error)
         const fileSizeKB = file.size / 1024
-        const estimatedPages = Math.max(1, Math.ceil(fileSizeKB / 50))
-        resolve(Math.min(estimatedPages, 10))
+        const fallbackPages = Math.max(1, Math.min(Math.ceil(fileSizeKB / 40), 10))
+        resolve(fallbackPages)
       }
-      reader.readAsText(file)
+
+      reader.readAsArrayBuffer(file)
     })
   }
 
@@ -682,7 +816,7 @@ function FilesPage() {
   // Add print queue state
   const [printQueue, setPrintQueue] = useState([])
 
-  // Function to calculate canvas pages cost with custom range
+  // Function to calculate canvas pages cost (single-sided only)
   const calculateCanvasPagesCost = () => {
     let totalCost = 0
 
@@ -693,7 +827,6 @@ function FilesPage() {
     if (printSettings.pageRange === "all") {
       pagesToCalculate = pages
     } else {
-      // Custom range
       const startPage = Math.max(1, printSettings.startPage)
       const endPage = Math.min(pages.length, printSettings.endPage)
 
@@ -705,26 +838,10 @@ function FilesPage() {
       }
     }
 
-    if (!printSettings.doubleSided) {
-      // Single-sided printing
-      pagesToCalculate.forEach((page) => {
-        totalCost += page.colorMode === "color" ? 10 : 2
-      })
-    } else {
-      // Double-sided printing - group pages by color mode
-      const colorPages = pagesToCalculate.filter((page) => page.colorMode === "color")
-      const bwPages = pagesToCalculate.filter((page) => page.colorMode === "bw")
-
-      // Color pages: ₹10 per page (each side)
-      totalCost += colorPages.length * 10
-
-      // B&W pages: ₹3 per sheet (2 pages), ₹2 for remaining single page
-      if (bwPages.length > 0) {
-        const fullSheets = Math.floor(bwPages.length / 2)
-        const remainingPages = bwPages.length % 2
-        totalCost += fullSheets * 3 + remainingPages * 2
-      }
-    }
+    // Always single-sided pricing
+    pagesToCalculate.forEach((page) => {
+      totalCost += page.colorMode === "color" ? 10 : 2
+    })
 
     return totalCost
   }
@@ -1201,6 +1318,8 @@ function FilesPage() {
                     )}
                   </div>
 
+                  {/* Remove this entire section from the print-panel:
+                  
                   <div className="option-group">
                     <h4>Print Options</h4>
                     <label className="checkbox-label">
@@ -1212,6 +1331,7 @@ function FilesPage() {
                       Double-sided printing
                     </label>
                   </div>
+                  */}
 
                   <div className="cost-summary">
                     <h4>Cost Summary</h4>
@@ -1239,19 +1359,9 @@ function FilesPage() {
                             return pagesToShow.map((page) => (
                               <div key={page.id} className="cost-item">
                                 <span>
-                                  Page {page.id} ({page.colorMode === "color" ? "Color" : "B&W"},{" "}
-                                  {printSettings.doubleSided ? "Double-sided" : "Single-sided"})
+                                  Page {page.id} ({page.colorMode === "color" ? "Color" : "B&W"}, Single-sided)
                                 </span>
-                                <span>
-                                  ₹
-                                  {printSettings.doubleSided
-                                    ? page.colorMode === "color"
-                                      ? 10
-                                      : 3
-                                    : page.colorMode === "color"
-                                      ? 10
-                                      : 2}
-                                </span>
+                                <span>₹{page.colorMode === "color" ? 10 : 2}</span>
                               </div>
                             ))
                           })()}
