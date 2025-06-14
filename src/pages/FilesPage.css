@@ -268,16 +268,18 @@ body {
   cursor: pointer;
   font-weight: 500;
   transition: background-color 0.2s;
+  color: black; /* BLACK text for all toolbar buttons */
 }
 
 .toolbar-button:hover {
   background-color: #e9e9e9;
 }
 
+/* Position color toggle beside delete button */
 .color-toggle {
   display: flex;
   align-items: center;
-  margin-left: auto;
+  margin-left: 8px; /* Small gap after delete button */
 }
 
 .toggle-label {
@@ -326,6 +328,7 @@ input:checked + .toggle-slider:before {
 .toggle-text {
   font-size: 14px;
   font-weight: 500;
+  color: black; /* BLACK text */
 }
 
 /* Canvas container */
@@ -336,7 +339,7 @@ input:checked + .toggle-slider:before {
   overflow-x: hidden;
   background-color: #f0f0f0;
   margin-top: 60px;
-  padding-bottom: 80px; /* Add padding to ensure space for page navigation */
+  padding-bottom: 80px;
 }
 
 .canvas-background {
@@ -380,6 +383,7 @@ input:checked + .toggle-slider:before {
   cursor: pointer;
   font-weight: 600;
   transition: all 0.2s;
+  color: black; /* BLACK text for page buttons */
 }
 
 .page-button.active {
@@ -390,8 +394,8 @@ input:checked + .toggle-slider:before {
 
 /* A4 Canvas */
 .a4-canvas {
-  width: 595px; /* A4 width in pixels at 72 DPI */
-  height: 842px; /* A4 height in pixels at 72 DPI */
+  width: 595px;
+  height: 842px;
   background-color: white;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
   margin: 40px auto;
@@ -470,13 +474,13 @@ input:checked + .toggle-slider:before {
   width: 24px;
   height: 24px;
   border-radius: 50%;
-  background-color: rgba(255, 255, 255, 0.8);
+  background-color: rgba(0, 0, 0, 0.8);
   border: none;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: #ff3b30;
+  color: #3060ff;
 }
 
 /* Right sidebar for print settings and image editing */
@@ -534,6 +538,7 @@ input:checked + .toggle-slider:before {
   transition: background-color 0.2s;
   flex: 1;
   min-width: 80px;
+  color: black; /* BLACK text for edit buttons */
 }
 
 .edit-button:hover {
@@ -753,6 +758,7 @@ input:checked + .toggle-slider:before {
   border: 1px solid #ddd;
   border-radius: 4px;
   cursor: pointer;
+  color: black; /* BLACK text */
 }
 
 /* Add styles for the delete page button */

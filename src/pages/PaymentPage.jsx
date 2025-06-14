@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useLocation, useNavigate } from "react-router-dom"
-import { ArrowLeft, Check, Loader } from "lucide-react"
+import { ArrowLeft, Check, Loader, Printer } from "lucide-react"
 import "./PaymentPage.css"
 
 function PaymentPage() {
@@ -27,7 +27,9 @@ function PaymentPage() {
     document.body.appendChild(script)
 
     return () => {
-      document.body.removeChild(script)
+      if (document.body.contains(script)) {
+        document.body.removeChild(script)
+      }
     }
   }, [])
 
@@ -37,7 +39,7 @@ function PaymentPage() {
       key: "rzp_live_LyazQXwGOFAmly", // Replace with your actual live Razorpay key
       amount: totalCost * 100, // Amount in paise
       currency: "INR",
-      name: "Print Service",
+      name: "PrinIT Service",
       description: "Payment for printing services",
       handler: (response) => {
         // Payment successful
@@ -52,7 +54,7 @@ function PaymentPage() {
         contact: "9999999999",
       },
       notes: {
-        address: "Print Service Office",
+        address: "PrinIT Service Office",
       },
       theme: {
         color: "#000000",
@@ -69,101 +71,249 @@ function PaymentPage() {
     razorpay.open()
   }
 
-  // Handle the printing process
-  const handlePrint = () => {
+  // Enhanced printing function for actual A4 sheets
+  const handlePrint = async () => {
     setIsPrinting(true)
 
-    // Create a hidden iframe for printing
-    const printFrame = document.createElement("iframe")
-    printFrame.style.position = "absolute"
-    printFrame.style.top = "-9999px"
-    printFrame.style.left = "-9999px"
-    document.body.appendChild(printFrame)
+    try {
+      // Create a comprehensive print document
+      const printWindow = window.open("", "_blank", "width=800,height=600")
 
-    // Generate content for printing
-    const printDocument = printFrame.contentDocument
-    printDocument.open()
-    printDocument.write(`
-      <html>
+      if (!printWindow) {
+        alert("Please allow popups for printing functionality")
+        return
+      }
+
+      // Generate comprehensive print content
+      let printContent = `
+        <!DOCTYPE html>
+        <html>
         <head>
-          <title>Print Document</title>
+          <title>PrinIT - Print Job</title>
           <style>
-            body { font-family: Arial, sans-serif; }
-            .page { page-break-after: always; height: 100vh; padding: 20px; }
-            .page-content { border: 1px solid #ddd; height: 100%; display: flex; align-items: center; justify-content: center; }
-            .blank-page { text-align: center; color: #999; }
+            @page {
+              size: A4;
+              margin: 0.5in;
+            }
+            
+            body {
+              font-family: Arial, sans-serif;
+              margin: 0;
+              padding: 0;
+              color: black;
+            }
+            
+            .page {
+              page-break-after: always;
+              min-height: 100vh;
+              padding: 20px;
+              box-sizing: border-box;
+              position: relative;
+            }
+            
+            .page:last-child {
+              page-break-after: avoid;
+            }
+            
+            .canvas-page {
+              border: 1px solid #ddd;
+              background: white;
+              display: flex;
+              flex-direction: column;
+              justify-content: center;
+              align-items: center;
+              text-align: center;
+              min-height: calc(100vh - 40px);
+            }
+            
+            .document-page {
+              background: white;
+              padding: 40px;
+              line-height: 1.6;
+            }
+            
+            .blank-page {
+              background: white;
+              border: 1px dashed #ccc;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              min-height: calc(100vh - 40px);
+              color: #999;
+              font-size: 18px;
+            }
+            
+            .page-header {
+              position: absolute;
+              top: 10px;
+              right: 10px;
+              font-size: 12px;
+              color: #666;
+            }
+            
+            .canvas-content {
+              max-width: 100%;
+              max-height: 80%;
+            }
+            
+            .canvas-item-info {
+              margin: 10px 0;
+              padding: 10px;
+              border: 1px solid #eee;
+              border-radius: 4px;
+            }
+            
+            .color-mode {
+              font-weight: bold;
+              color: #2196f3;
+            }
+            
+            .bw-mode {
+              filter: grayscale(100%);
+            }
+            
+            @media print {
+              body { -webkit-print-color-adjust: exact; }
+              .page { margin: 0; }
+            }
           </style>
         </head>
         <body>
-    `)
+      `
 
-    // Add canvas pages
-    pages.forEach((page, index) => {
-      printDocument.write(`
-        <div class="page">
-          <div class="page-content">
-            <div>Canvas Page ${index + 1} - ${page.colorMode === "color" ? "Color" : "B&W"}</div>
-          </div>
-        </div>
-      `)
-    })
+      let pageNumber = 1
 
-    // Add print queue items
-    printQueue.forEach((item) => {
-      for (let i = 0; i < item.pages; i++) {
-        printDocument.write(`
-          <div class="page">
-            <div class="page-content">
-              <div>Document: ${item.file.name} - Page ${i + 1} - ${item.colorMode === "color" ? "Color" : "B&W"}</div>
+      // Add canvas pages with actual content
+      if (pages && pages.length > 0) {
+        for (const page of pages) {
+          const colorClass = page.colorMode === "bw" ? "bw-mode" : ""
+
+          printContent += `
+            <div class="page">
+              <div class="page-header">Page ${pageNumber} - Canvas Page ${page.id}</div>
+              <div class="canvas-page ${colorClass}">
+                <h2>Canvas Page ${page.id}</h2>
+                <p class="${page.colorMode === "color" ? "color-mode" : ""}">
+                  Mode: ${page.colorMode === "color" ? "Color" : "Black & White"}
+                </p>
+                
+                ${
+                  page.items && page.items.length > 0
+                    ? page.items
+                        .map(
+                          (item) => `
+                    <div class="canvas-item-info">
+                      <p><strong>File:</strong> ${item.file.name}</p>
+                      <p><strong>Position:</strong> X: ${Math.round(item.x)}px, Y: ${Math.round(item.y)}px</p>
+                      <p><strong>Size:</strong> ${Math.round(item.width)}px × ${Math.round(item.height)}px</p>
+                      ${item.rotation ? `<p><strong>Rotation:</strong> ${item.rotation}°</p>` : ""}
+                    </div>
+                  `,
+                        )
+                        .join("")
+                    : "<p>Empty canvas page</p>"
+                }
+              </div>
             </div>
-          </div>
-        `)
+          `
+          pageNumber++
+        }
       }
-    })
 
-    // Add blank sheets
-    for (let i = 0; i < blankSheets; i++) {
-      printDocument.write(`
-        <div class="page">
-          <div class="page-content blank-page">
-            <div>Blank A4 Sheet</div>
-          </div>
-        </div>
-      `)
-    }
+      // Add document pages from print queue
+      if (printQueue && printQueue.length > 0) {
+        for (const item of printQueue) {
+          const colorClass = item.colorMode === "bw" ? "bw-mode" : ""
 
-    printDocument.write(`
-        </body>
-      </html>
-    `)
-    printDocument.close()
-
-    // Trigger print after a short delay to ensure content is loaded
-    setTimeout(() => {
-      printFrame.contentWindow.print()
-
-      // Start countdown after print dialog is shown
-      setPaymentStatus("success")
-
-      // Start countdown
-      const timer = setInterval(() => {
-        setCountdown((prev) => {
-          if (prev <= 1) {
-            clearInterval(timer)
-            // Navigate back to home after countdown
-            navigate("/")
-            return 0
+          for (let i = 0; i < item.pages; i++) {
+            printContent += `
+              <div class="page">
+                <div class="page-header">Page ${pageNumber} - Document Page ${i + 1}/${item.pages}</div>
+                <div class="document-page ${colorClass}">
+                  <h2>Document: ${item.file.name}</h2>
+                  <p><strong>Page ${i + 1} of ${item.pages}</strong></p>
+                  <p class="${item.colorMode === "color" ? "color-mode" : ""}">
+                    Print Mode: ${item.colorMode === "color" ? "Color" : "Black & White"}
+                  </p>
+                  <p><strong>Print Style:</strong> ${item.doubleSided ? "Double-sided" : "Single-sided"}</p>
+                  <p><strong>File Size:</strong> ${(item.file.size / 1024).toFixed(1)} KB</p>
+                  <p><strong>File Type:</strong> ${item.file.type}</p>
+                  
+                  <div style="margin-top: 40px; padding: 20px; border: 1px solid #ddd; background: #f9f9f9;">
+                    <p><em>This represents the content of your ${item.file.name} document.</em></p>
+                    <p><em>The actual document content would be rendered here when connected to a document processing service.</em></p>
+                  </div>
+                </div>
+              </div>
+            `
+            pageNumber++
           }
-          return prev - 1
-        })
-      }, 1000)
-
-      // Clean up
-      return () => {
-        clearInterval(timer)
-        document.body.removeChild(printFrame)
+        }
       }
-    }, 1000)
+
+      // Add blank sheets
+      if (blankSheets > 0) {
+        for (let i = 0; i < blankSheets; i++) {
+          printContent += `
+            <div class="page">
+              <div class="page-header">Page ${pageNumber} - Blank Sheet ${i + 1}/${blankSheets}</div>
+              <div class="blank-page">
+                <div>
+                  <h3>Blank A4 Sheet</h3>
+                  <p>Sheet ${i + 1} of ${blankSheets}</p>
+                </div>
+              </div>
+            </div>
+          `
+          pageNumber++
+        }
+      }
+
+      printContent += `
+        </body>
+        </html>
+      `
+
+      // Write content to print window
+      printWindow.document.write(printContent)
+      printWindow.document.close()
+
+      // Wait for content to load, then print
+      setTimeout(() => {
+        printWindow.focus()
+        printWindow.print()
+
+        // Set success status and start countdown
+        setPaymentStatus("success")
+
+        // Start countdown timer
+        const timer = setInterval(() => {
+          setCountdown((prev) => {
+            if (prev <= 1) {
+              clearInterval(timer)
+              navigate("/")
+              return 0
+            }
+            return prev - 1
+          })
+        }, 1000)
+
+        // Close print window after printing
+        printWindow.onafterprint = () => {
+          printWindow.close()
+        }
+
+        return () => {
+          clearInterval(timer)
+        }
+      }, 1000)
+    } catch (error) {
+      console.error("Printing error:", error)
+      alert("There was an error with printing. Please try again.")
+      setPaymentStatus("pending")
+    } finally {
+      setIsPrinting(false)
+    }
   }
 
   return (
@@ -185,11 +335,12 @@ function PaymentPage() {
               <div className="order-details">
                 {pages.length > 0 && (
                   <div className="order-section">
-                    <h3>Canvas Pages</h3>
+                    <h3>Canvas Pages ({pages.length})</h3>
                     {pages.map((page, index) => (
                       <div key={index} className="order-item">
                         <span>
-                          Page {page.id} ({page.colorMode === "color" ? "Color" : "B&W"})
+                          Page {page.id} ({page.colorMode === "color" ? "Color" : "B&W"}) - {page.items?.length || 0}{" "}
+                          items
                         </span>
                         <span>₹{page.colorMode === "color" ? 10 : 2}</span>
                       </div>
@@ -199,12 +350,12 @@ function PaymentPage() {
 
                 {printQueue.length > 0 && (
                   <div className="order-section">
-                    <h3>Documents</h3>
+                    <h3>Documents ({printQueue.length})</h3>
                     {printQueue.map((item, index) => (
                       <div key={index} className="order-item">
                         <span>
-                          {item.file.name.substring(0, 15)}
-                          {item.file.name.length > 15 ? "..." : ""} ({item.pages} pages,{" "}
+                          {item.file.name.substring(0, 20)}
+                          {item.file.name.length > 20 ? "..." : ""} ({item.pages} pages,{" "}
                           {item.colorMode === "color" ? "Color" : "B&W"},{" "}
                           {item.doubleSided ? "Double-sided" : "Single-sided"})
                         </span>
@@ -231,7 +382,8 @@ function PaymentPage() {
               </div>
 
               <button className="pay-now-button" onClick={handlePayment}>
-                Pay Now ₹{totalCost}
+                <Printer size={16} />
+                Pay & Print Now ₹{totalCost}
               </button>
             </div>
           </div>
@@ -244,7 +396,8 @@ function PaymentPage() {
                 <Loader size={48} className="spin-animation" />
               </div>
               <h2>Processing Your Print Job</h2>
-              <p>Please wait while we prepare your documents for printing...</p>
+              <p>Preparing your documents for printing...</p>
+              <p>Please ensure your printer is connected and ready.</p>
             </div>
           </div>
         )}
@@ -255,14 +408,15 @@ function PaymentPage() {
               <div className="success-icon">
                 <Check size={48} />
               </div>
-              <h2>Printing in Progress!</h2>
-              <p>Your documents are being printed.</p>
+              <h2>Print Job Sent Successfully!</h2>
+              <p>Your documents have been sent to the printer.</p>
+              <p>Please collect your printed pages from the printer.</p>
               <div className="countdown">
                 <p>
                   Redirecting to home in <span className="countdown-number">{countdown}</span> seconds
                 </p>
                 <div className="progress-bar">
-                  <div className="progress" style={{ width: `${(countdown / 15) * 100}%` }}></div>
+                  <div className="progress" style={{ width: `${((15 - countdown) / 15) * 100}%` }}></div>
                 </div>
               </div>
             </div>

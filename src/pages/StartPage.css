@@ -1,6 +1,6 @@
 .start-page {
   min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, white 0%, black 100%);
   display: flex;
   flex-direction: column;
   color: white;
@@ -57,8 +57,8 @@
 }
 
 .start-printing-btn {
-  background: linear-gradient(45deg, #ff6b6b, #ee5a24);
-  color: white;
+  background: linear-gradient(45deg, white );
+  color : black ;
   border: none;
   padding: 18px 40px;
   font-size: 1.2rem;
@@ -66,14 +66,14 @@
   border-radius: 50px;
   cursor: pointer;
   transition: all 0.3s ease;
-  box-shadow: 0 8px 25px rgba(255, 107, 107, 0.4);
+  box-shadow: 0 8px 25px white;
   text-transform: uppercase;
   letter-spacing: 1px;
 }
 
 .start-printing-btn:hover {
   transform: translateY(-3px);
-  box-shadow: 0 12px 35px rgba(255, 107, 107, 0.6);
+  box-shadow: 0 12px 35px black;
 }
 
 .features-grid {
@@ -81,7 +81,7 @@
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
   gap: 30px;
   max-width: 1000px;
-  width: 100%;
+  width: 40%;
   margin-bottom: 60px;
 }
 
@@ -203,7 +203,7 @@
   align-items: center;
   padding: 25px 30px;
   border-bottom: 2px solid #eee;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, white 0%, black 100%);
   color: white;
   border-radius: 15px 15px 0 0;
 }
