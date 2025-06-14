@@ -34,13 +34,14 @@ function PaymentPage() {
   // Handle the payment process
   const handlePayment = () => {
     const options = {
-      key: "rzp_test_a5e9i14H29G87P", // Replace with your actual Razorpay key
+      key: "rzp_live_YOUR_LIVE_KEY_HERE", // Replace with your actual live Razorpay key
       amount: totalCost * 100, // Amount in paise
       currency: "INR",
       name: "Print Service",
       description: "Payment for printing services",
       handler: (response) => {
         // Payment successful
+        console.log("Payment successful:", response)
         setPaymentStatus("processing")
         // Start printing process
         handlePrint()
@@ -55,6 +56,12 @@ function PaymentPage() {
       },
       theme: {
         color: "#000000",
+      },
+      modal: {
+        ondismiss: () => {
+          console.log("Payment cancelled")
+          // Handle payment cancellation if needed
+        },
       },
     }
 
@@ -197,9 +204,11 @@ function PaymentPage() {
                       <div key={index} className="order-item">
                         <span>
                           {item.file.name.substring(0, 15)}
-                          {item.file.name.length > 15 ? "..." : ""} ({item.pages} pages)
+                          {item.file.name.length > 15 ? "..." : ""} ({item.pages} pages,{" "}
+                          {item.colorMode === "color" ? "Color" : "B&W"},{" "}
+                          {item.doubleSided ? "Double-sided" : "Single-sided"})
                         </span>
-                        <span>₹{item.pages * (item.colorMode === "color" ? 10 : item.doubleSided ? 3 : 2)}</span>
+                        <span>₹{item.cost}</span>
                       </div>
                     ))}
                   </div>

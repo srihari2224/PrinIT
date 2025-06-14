@@ -485,6 +485,21 @@ function FilesPage() {
       pagesToPrint = fileOptions.printSettings.endPage - fileOptions.printSettings.startPage + 1
     }
 
+    // Calculate cost for double-sided printing
+    let itemCost = 0
+    if (fileOptions.printSettings.colorMode === "color") {
+      itemCost = pagesToPrint * 10 // 10 Rs per page for color
+    } else {
+      if (fileOptions.printSettings.doubleSided) {
+        // For double-sided: calculate sheets needed
+        const sheetsNeeded = Math.floor(pagesToPrint / 2)
+        const remainingPages = pagesToPrint % 2
+        itemCost = sheetsNeeded * 3 + remainingPages * 2 // 3 Rs per sheet for double-sided, 2 Rs for remaining single page
+      } else {
+        itemCost = pagesToPrint * 2 // 2 Rs per page for single-sided
+      }
+    }
+
     // Add to print queue
     setPrintQueue([
       ...printQueue,
@@ -493,6 +508,7 @@ function FilesPage() {
         pages: pagesToPrint,
         doubleSided: fileOptions.printSettings.doubleSided,
         colorMode: fileOptions.printSettings.colorMode,
+        cost: itemCost,
       },
     ])
 
@@ -517,13 +533,9 @@ function FilesPage() {
       })
     }
 
-    // Cost for print queue items
+    // Cost for print queue items - use pre-calculated costs
     printQueue.forEach((item) => {
-      if (item.colorMode === "color") {
-        totalCost += item.pages * 10 // 10 Rs per page for color
-      } else {
-        totalCost += item.pages * (item.doubleSided ? 3 : 2) // 3 Rs per page for double-sided, 2 Rs for single-sided
-      }
+      totalCost += item.cost || 0
     })
 
     // Cost for blank sheets
@@ -1021,7 +1033,7 @@ function FilesPage() {
                                 {item.colorMode === "color" ? "Color" : "B&W"},{" "}
                                 {item.doubleSided ? "Double-sided" : "Single-sided"})
                               </span>
-                              <span>₹{item.pages * (item.colorMode === "color" ? 10 : item.doubleSided ? 3 : 2)}</span>
+                              <span>₹{item.cost}</span>
                             </div>
                           ))}
                         </div>
