@@ -65,34 +65,63 @@ function FilesPage() {
   // Function to get accurate PDF page count using PDF.js
   const getPDFPageCount = async (file) => {
     return new Promise((resolve) => {
+      console.log("Starting PDF page count for:", file.name)
+
       const reader = new FileReader()
       reader.onload = async function () {
         try {
-          // Load PDF.js if not already loaded
+          // Ensure PDF.js is loaded
           if (!window.pdfjsLib) {
+            console.log("Loading PDF.js...")
             const script = document.createElement("script")
             script.src = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"
             script.onload = async () => {
+              console.log("PDF.js loaded successfully")
               try {
+                // Set worker source
+                window.pdfjsLib.GlobalWorkerOptions.workerSrc =
+                  "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js"
+
                 const pdf = await window.pdfjsLib.getDocument({ data: this.result }).promise
+                console.log("PDF loaded, page count:", pdf.numPages)
                 resolve(pdf.numPages)
               } catch (error) {
-                console.error("Error loading PDF:", error)
+                console.error("Error loading PDF after script load:", error)
                 resolve(1)
               }
+            }
+            script.onerror = () => {
+              console.error("Failed to load PDF.js")
+              resolve(1)
             }
             document.head.appendChild(script)
           } else {
             // PDF.js is already loaded
-            const pdf = await window.pdfjsLib.getDocument({ data: this.result }).promise
-            resolve(pdf.numPages)
+            console.log("PDF.js already loaded")
+            try {
+              // Set worker source if not set
+              if (!window.pdfjsLib.GlobalWorkerOptions.workerSrc) {
+                window.pdfjsLib.GlobalWorkerOptions.workerSrc =
+                  "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js"
+              }
+
+              const pdf = await window.pdfjsLib.getDocument({ data: this.result }).promise
+              console.log("PDF loaded, page count:", pdf.numPages)
+              resolve(pdf.numPages)
+            } catch (error) {
+              console.error("Error loading PDF:", error)
+              resolve(1)
+            }
           }
         } catch (error) {
-          console.error("Error reading PDF:", error)
+          console.error("Error in PDF processing:", error)
           resolve(1)
         }
       }
-      reader.onerror = () => resolve(1)
+      reader.onerror = (error) => {
+        console.error("FileReader error:", error)
+        resolve(1)
+      }
       reader.readAsArrayBuffer(file)
     })
   }
@@ -535,8 +564,24 @@ function FilesPage() {
     },
   })
 
-  // Add function to show file options
+  // Add function to show file options with loading state
   const showFileOptions = async (file) => {
+    console.log("Clicked on file:", file.name, "Type:", file.type)
+
+    // Show modal immediately with loading state
+    setFileOptions({
+      showModal: true,
+      file,
+      pageCount: 0, // Start with 0 to show loading
+      printSettings: {
+        doubleSided: false,
+        pageRange: "all",
+        startPage: 1,
+        endPage: 1,
+        colorMode: "bw",
+      },
+    })
+
     let pageCount = 1
 
     try {
@@ -567,6 +612,7 @@ function FilesPage() {
       pageCount = 1
     }
 
+    // Update the modal with the actual page count
     setFileOptions({
       showModal: true,
       file,
@@ -1287,144 +1333,153 @@ function FilesPage() {
           <div className="print-modal-content">
             <h2>Print Options: {fileOptions.file.name}</h2>
 
-            <div className="print-options">
-              <div className="option-group">
-                <h3>Page Range</h3>
-                <div className="radio-group">
-                  <label>
-                    <input
-                      type="radio"
-                      name="filePageRange"
-                      value="all"
-                      checked={fileOptions.printSettings.pageRange === "all"}
-                      onChange={() =>
-                        setFileOptions({
-                          ...fileOptions,
-                          printSettings: {
-                            ...fileOptions.printSettings,
-                            pageRange: "all",
-                          },
-                        })
-                      }
-                    />
-                    All Pages ({fileOptions.pageCount} pages)
-                  </label>
-                  <label>
-                    <input
-                      type="radio"
-                      name="filePageRange"
-                      value="custom"
-                      checked={fileOptions.printSettings.pageRange === "custom"}
-                      onChange={() =>
-                        setFileOptions({
-                          ...fileOptions,
-                          printSettings: {
-                            ...fileOptions.printSettings,
-                            pageRange: "custom",
-                          },
-                        })
-                      }
-                    />
-                    Custom Range
-                  </label>
+            {fileOptions.pageCount === 0 ? (
+              <div style={{ textAlign: "center", padding: "20px" }}>
+                <p>Analyzing document...</p>
+                <p>Counting pages, please wait...</p>
+              </div>
+            ) : (
+              <div className="print-options">
+                <div className="option-group">
+                  <h3>Page Range</h3>
+                  <div className="radio-group">
+                    <label>
+                      <input
+                        type="radio"
+                        name="filePageRange"
+                        value="all"
+                        checked={fileOptions.printSettings.pageRange === "all"}
+                        onChange={() =>
+                          setFileOptions({
+                            ...fileOptions,
+                            printSettings: {
+                              ...fileOptions.printSettings,
+                              pageRange: "all",
+                            },
+                          })
+                        }
+                      />
+                      All Pages ({fileOptions.pageCount} pages)
+                    </label>
+                    <label>
+                      <input
+                        type="radio"
+                        name="filePageRange"
+                        value="custom"
+                        checked={fileOptions.printSettings.pageRange === "custom"}
+                        onChange={() =>
+                          setFileOptions({
+                            ...fileOptions,
+                            printSettings: {
+                              ...fileOptions.printSettings,
+                              pageRange: "custom",
+                            },
+                          })
+                        }
+                      />
+                      Custom Range
+                    </label>
+                  </div>
+
+                  {fileOptions.printSettings.pageRange === "custom" && (
+                    <div className="page-range-inputs">
+                      <div className="input-group">
+                        <label>From:</label>
+                        <input
+                          type="number"
+                          min="1"
+                          max={fileOptions.pageCount}
+                          value={fileOptions.printSettings.startPage}
+                          onChange={(e) =>
+                            setFileOptions({
+                              ...fileOptions,
+                              printSettings: {
+                                ...fileOptions.printSettings,
+                                startPage: Math.min(Number.parseInt(e.target.value) || 1, fileOptions.pageCount),
+                              },
+                            })
+                          }
+                        />
+                      </div>
+                      <div className="input-group">
+                        <label>To:</label>
+                        <input
+                          type="number"
+                          min={fileOptions.printSettings.startPage}
+                          max={fileOptions.pageCount}
+                          value={fileOptions.printSettings.endPage}
+                          onChange={(e) =>
+                            setFileOptions({
+                              ...fileOptions,
+                              printSettings: {
+                                ...fileOptions.printSettings,
+                                endPage: Math.min(
+                                  Number.parseInt(e.target.value) || fileOptions.printSettings.startPage,
+                                  fileOptions.pageCount,
+                                ),
+                              },
+                            })
+                          }
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
 
-                {fileOptions.printSettings.pageRange === "custom" && (
-                  <div className="page-range-inputs">
-                    <div className="input-group">
-                      <label>From:</label>
-                      <input
-                        type="number"
-                        min="1"
-                        max={fileOptions.pageCount}
-                        value={fileOptions.printSettings.startPage}
-                        onChange={(e) =>
-                          setFileOptions({
-                            ...fileOptions,
-                            printSettings: {
-                              ...fileOptions.printSettings,
-                              startPage: Math.min(Number.parseInt(e.target.value) || 1, fileOptions.pageCount),
-                            },
-                          })
-                        }
-                      />
-                    </div>
-                    <div className="input-group">
-                      <label>To:</label>
-                      <input
-                        type="number"
-                        min={fileOptions.printSettings.startPage}
-                        max={fileOptions.pageCount}
-                        value={fileOptions.printSettings.endPage}
-                        onChange={(e) =>
-                          setFileOptions({
-                            ...fileOptions,
-                            printSettings: {
-                              ...fileOptions.printSettings,
-                              endPage: Math.min(
-                                Number.parseInt(e.target.value) || fileOptions.printSettings.startPage,
-                                fileOptions.pageCount,
-                              ),
-                            },
-                          })
-                        }
-                      />
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <div className="option-group">
-                <h3>Print Options</h3>
-                <label className="checkbox-label">
-                  <input
-                    type="checkbox"
-                    checked={fileOptions.printSettings.doubleSided}
-                    onChange={() =>
-                      setFileOptions({
-                        ...fileOptions,
-                        printSettings: {
-                          ...fileOptions.printSettings,
-                          doubleSided: !fileOptions.printSettings.doubleSided,
-                        },
-                      })
-                    }
-                  />
-                  Double-sided printing
-                </label>
-
-                <div className="color-toggle mt-3">
-                  <label className="toggle-label">
+                <div className="option-group">
+                  <h3>Print Options</h3>
+                  <label className="checkbox-label">
                     <input
                       type="checkbox"
-                      checked={fileOptions.printSettings.colorMode === "color"}
+                      checked={fileOptions.printSettings.doubleSided}
                       onChange={() =>
                         setFileOptions({
                           ...fileOptions,
                           printSettings: {
                             ...fileOptions.printSettings,
-                            colorMode: fileOptions.printSettings.colorMode === "color" ? "bw" : "color",
+                            doubleSided: !fileOptions.printSettings.doubleSided,
                           },
                         })
                       }
                     />
-                    <span className="toggle-slider"></span>
-                    <span className="toggle-text">
-                      {fileOptions.printSettings.colorMode === "color" ? "Color" : "B&W"}
-                    </span>
+                    Double-sided printing
                   </label>
+
+                  <div className="color-toggle mt-3">
+                    <label className="toggle-label">
+                      <input
+                        type="checkbox"
+                        checked={fileOptions.printSettings.colorMode === "color"}
+                        onChange={() =>
+                          setFileOptions({
+                            ...fileOptions,
+                            printSettings: {
+                              ...fileOptions.printSettings,
+                              colorMode: fileOptions.printSettings.colorMode === "color" ? "bw" : "color",
+                            },
+                          })
+                        }
+                      />
+                      <span className="toggle-slider"></span>
+                      <span className="toggle-text">
+                        {fileOptions.printSettings.colorMode === "color" ? "Color" : "B&W"}
+                      </span>
+                    </label>
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
 
             <div className="modal-actions">
               <button className="cancel-button" onClick={() => setFileOptions({ ...fileOptions, showModal: false })}>
                 Cancel
               </button>
-              <button className="payment-button" onClick={addFileToPrintQueue}>
-                <Printer size={16} />
-                <span>Add to Print Queue</span>
-              </button>
+              {fileOptions.pageCount > 0 && (
+                <button className="payment-button" onClick={addFileToPrintQueue}>
+                  <Printer size={16} />
+                  <span>Add to Print Queue</span>
+                </button>
+              )}
             </div>
           </div>
         </div>
