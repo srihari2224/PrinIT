@@ -57,7 +57,7 @@ function PaymentPage() {
         address: "PrinIT Service Office",
       },
       theme: {
-        color: "#000000=",
+        color: "#000000",
       },
       modal: {
         ondismiss: () => {
