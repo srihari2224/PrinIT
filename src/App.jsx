@@ -11,7 +11,7 @@ function App() {
   return (
     <div className="main-screen">
       <div className="navibar">
-        <img className="Clogo" src="/Clogo.png" onClick={() => navigate("/")}></img>
+        <img className="Clogo" src="/Screenshot 2025-06-16 224327.jpg" onClick={() => navigate("/")}></img>
         {/* <button className="back-button" onClick={() => navigate("/")}>
           <ArrowLeft size={20} />
           <span>Back</span>
