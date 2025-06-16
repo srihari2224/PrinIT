@@ -21,27 +21,20 @@ function App() {
 
       <div className="content-row">
         <div className="mini">
-          <Spline scene="https://prod.spline.design/Pdrjcz7qIGgfRQfu/scene.splinecode" />
+          
         </div>
 
         <div className="right-box">
           <div className="white-box">
-            <p className="title">
-              File Transfer via <span className="highlight-orange">WhatsApp</span>
-            </p>
+            
 
-            <img className="qr-image" src="/WhatsApp Image 2025-06-12 at 15.23.17_1ba260da.jpg" alt="QR Code" />
+            <img className="qr-image" src="/iphonee.jpg" alt="QR Code" />
 
-            <h3 className="description">
-              Scan the WhatsApp QR code, send your documents to <b>PrinIT@WhatsApp</b>, and instantly access them from
-              the computer's folder view.
-            </h3>
+            
           </div>
 
           <div className="bottombox">
-            <h3>
-              Access <b>Files</b> from the computer's folder view
-            </h3>
+            
 
             <label htmlFor="fileUpload" className="upload-label">
               Choose Files
