@@ -11,10 +11,11 @@ function App() {
   return (
     <div className="main-screen">
       <div className="navibar">
-        <button className="back-button" onClick={() => navigate("/")}>
+        <img className="Clogo" src="/Clogo.png" onClick={() => navigate("/")}></img>
+        {/* <button className="back-button" onClick={() => navigate("/")}>
           <ArrowLeft size={20} />
           <span>Back</span>
-        </button>
+        </button> */}
         <p>Start Printing</p>
       </div>
 

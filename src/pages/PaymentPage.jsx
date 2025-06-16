@@ -51,13 +51,13 @@ function PaymentPage() {
       prefill: {
         name: "Customer Name",
         email: "customer@example.com",
-        contact: "9999999999",
+        contact: "",
       },
       notes: {
         address: "PrinIT Service Office",
       },
       theme: {
-        color: "#000000",
+        color: "#000000=",
       },
       modal: {
         ondismiss: () => {
