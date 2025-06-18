@@ -125,26 +125,62 @@ function StartPage() {
 
   return (
     <div className="start-page">
-      {/* Header */}
+
+
+
+
+
+
       <div className="start-header">
-        <h1 className="brand-title">PrinIT</h1>
-        <p className="brand-subtitle">Your Digital Printing Solution</p>
+        <div class="heading-container" onClick={() => navigate("/main")}>
+          <h1>KIOSK meets</h1>
+          <h1 class="gradient-text">Printing Papers</h1>
+        </div>
+        <div class="verified-footer">
+          <img src="/verified.png"  class="verified-icon"></img>
+          <span>Verified by NIT C</span>
+        </div>
       </div>
+
+
+      <div className="subject" >
+
+        <div className="left"></div>
+        <div className="right"></div>
+
+      </div>
+
+      <div className="pathways"></div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
       {/* Main Content */}
       <div className="start-content">
         <div className="hero-section">
-          <h2 className="hero-title">Fast & Easy Printing</h2>
+          {/* <h2 className="hero-title">Fast & Easy Printing</h2>
           <p className="hero-description">
             Upload your documents, customize your print settings, and get instant high-quality prints
-          </p>
+          </p> */}
 
-          <button className="start-printing-btn" onClick={() => navigate("/main")}>
+          {/* <button className="start-printing-btn" >
             Start Printing
-          </button>
+          </button> */}
         </div>
 
-        <div className="features-grid">
+        {/* <div className="features-grid">
           <div className="feature-card">
             <div className="feature-icon">📄</div>
             <h3>Multiple Formats</h3>
@@ -167,11 +203,30 @@ function StartPage() {
             <div className="feature-icon">⚡</div>
             <h3>Instant Print</h3>
             <p>Get your documents printed immediately</p>
-          </div>
-        </div>
+          </div> */}
+        {/* </div> */}
       </div>
 
-      {/* Footer */}
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       <footer className="start-footer">
         <div className="footer-links">
           <button onClick={() => handlePolicyClick("contact")} className="footer-link">
@@ -191,11 +246,11 @@ function StartPage() {
           </button>
         </div>
 
-        <div className="admin-access">
+        {/* <div className="admin-access">
           <button className="admin-btn" onClick={() => navigate("/admin")}>
             Admin Access
           </button>
-        </div>
+        </div> */}
 
         <div className="footer-bottom">
           <p>&copy; 2025 PrinIT. All rights reserved.</p>
