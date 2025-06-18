@@ -911,7 +911,7 @@ function FilesPage() {
           <ArrowLeft size={20} />
           <span>Back</span>
         </button>
-        <div className="page-title">File Editor</div>
+        <div className="title">File Editor</div>
       </div>
 
       <div className="main-content">
@@ -1249,35 +1249,9 @@ function FilesPage() {
               </div>
             ) : (
               <div className="print-panel">
-                <div className="panel-header">
-                  <h3>Print Settings</h3>
-                </div>
-
                 <div className="print-options">
                   <div className="option-group">
-                    <h4>Page Range</h4>
-                    <div className="radio-group">
-                      <label>
-                        <input
-                          type="radio"
-                          name="pageRange"
-                          value="all"
-                          checked={printSettings.pageRange === "all"}
-                          onChange={() => setPrintSettings({ ...printSettings, pageRange: "all" })}
-                        />
-                        All Pages
-                      </label>
-                      <label>
-                        <input
-                          type="radio"
-                          name="pageRange"
-                          value="custom"
-                          checked={printSettings.pageRange === "custom"}
-                          onChange={() => setPrintSettings({ ...printSettings, pageRange: "custom" })}
-                        />
-                        Custom Range
-                      </label>
-                    </div>
+                    
 
                     {printSettings.pageRange === "custom" && (
                       <div className="page-range-inputs">
@@ -1433,7 +1407,7 @@ function FilesPage() {
             }
           >
             <CreditCard size={16} />
-            <span>Proceed to Payment</span>
+            <span id="color">Proceed to Payment</span>
           </button>
         </div>
       </div>
@@ -1585,7 +1559,7 @@ function FilesPage() {
                 Cancel
               </button>
               {fileOptions.pageCount > 0 && (
-                <button className="payment-button" onClick={addFileToPrintQueue}>
+                <button className="payment-button" id="queueb" onClick={addFileToPrintQueue}>
                   <Printer size={16} />
                   <span>Add to Print Queue</span>
                 </button>
