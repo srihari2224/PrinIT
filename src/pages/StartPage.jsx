@@ -151,7 +151,40 @@ function StartPage() {
 
       </div>
 
-      <div className="pathways"></div>
+      <div className="pathways">
+        <h2 className="pathways-title">Get Started with Pathways</h2>
+
+        <div className="step">
+          <img src="/whatapp.png" alt="WhatsApp" />
+          <div className="label">WhatsApp</div>
+          <div className="hover-box">📱 Step 1: Start chatting via WhatsApp to upload files instantly.</div>
+        </div>
+
+        <div className="step">
+          <img src="/kiosk.png" alt="Kiosk" />
+          <div className="label">Kiosk</div>
+          <div className="hover-box">🖥️ Step 2: Visit the kiosk system to manage and view uploads.</div>
+        </div>
+
+        <div className="step">
+          <img src="/folder.png" alt="Folder" />
+          <div className="label">File Upload</div>
+          <div className="hover-box">📂 Step 3: Upload documents like PDFs, images, or Word files.</div>
+        </div>
+
+        <div className="step">
+          <img src="/razorpay.png" alt="Payment" />
+          <div className="label">Payment</div>
+          <div className="hover-box">💳 Step 4: Make a secure payment via Razorpay for your print job.</div>
+        </div>
+
+        <div className="step">
+          <img src="/printer.png" alt="Printer" />
+          <div className="label">Print</div>
+          <div className="hover-box">🖨️ Step 5: Collect your printed document instantly at the kiosk.</div>
+        </div>
+      </div>
+
 
 
 
