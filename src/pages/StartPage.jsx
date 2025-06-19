@@ -132,15 +132,16 @@ function StartPage() {
 
 
       <div className="start-header">
-        <div class="heading-container" onClick={() => navigate("/main")}>
+        <div className="heading-container" onClick={() => navigate("/main")}>
           <h1>KIOSK meets</h1>
-          <h1 class="gradient-text">Printing Papers</h1>
+          <h1 className="gradient-text">Printing Papers</h1>
         </div>
-        <div class="verified-footer">
-          <img src="/verified.png"  class="verified-icon"></img>
+        <div className="verified-footer">
+          <img src="/verified.png" className="verified-icon" alt="Verified" />
           <span>Verified by NIT C</span>
         </div>
       </div>
+
 
 
       <div className="subject" >
