@@ -10,32 +10,33 @@ function App() {
 
   return (
     <div className="main-screen">
+
+
       <div className="navibar">
-        <img className="Clogo" src="" onClick={() => navigate("/")}></img>
-        {/* <button className="back-button" onClick={() => navigate("/")}>
-          <ArrowLeft size={20} />
-          <span>Back</span>
-        </button> */}
-        <p>Start Printing</p>
+
+            <div class="logo" onClick={() => navigate("/")}>
+              <span class="home">HOME</span><span class="num">25</span>
+            </div>
+
       </div>
 
       <div className="content-row">
-        <div className="mini">
-          
-        </div>
-
         <div className="right-box">
-          <div className="white-box">
-            
 
-            <img className="qr-image" src="/iphonee.jpg" alt="QR Code" />
+          <div className="text-and-image">
+            <div className="box">
+              <h1 className="hover-text">
+                <span className="text kiosk-text">PRINTING </span>
+                <span className="glassy-text meets-text">starts</span>
+              </h1>
+            </div>
 
-            
+            <div className="image">
+              <img className="qr-image" src="/iphonee.jpg" alt="QR Code" />
+            </div>
           </div>
 
           <div className="bottombox">
-            
-
             <label htmlFor="fileUpload" className="upload-label">
               Choose Files
             </label>
@@ -53,7 +54,12 @@ function App() {
               }}
             />
           </div>
+
+
+          
         </div>
+
+        
       </div>
     </div>
   )
