@@ -907,10 +907,9 @@ function FilesPage() {
   return (
     <div className="files-page">
       <div className="navbar">
-        <button className="back-button" onClick={() => navigate("/")}>
-          <ArrowLeft size={20} />
-          <span>Back</span>
-        </button>
+        <div class="logo1" onClick={() => navigate("/")}>
+              <span class="home">HOME</span><span class="num">25</span>
+        </div>
         <div className="title">File Editor</div>
       </div>
 
