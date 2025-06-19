@@ -15,7 +15,7 @@ function App() {
       <div className="navibar">
 
             <div class="logo" onClick={() => navigate("/")}>
-              <span class="home">HOME</span><span class="num">25</span>
+              <span class="home">HOME</span><span class="num1">25</span>
             </div>
 
       </div>
