@@ -53,9 +53,12 @@ function App() {
                 }
               }}
             />
+            <div class="blank-paper">
+              <button id="blank"  onClick={() => navigate("/blank-sheets")} > Blank Papers</button>
+            </div>
           </div>
 
-
+                                                                                                                                                                                                                                                                                                        
           
         </div>
 
