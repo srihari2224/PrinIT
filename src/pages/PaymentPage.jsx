@@ -36,7 +36,7 @@ function PaymentPage() {
   // Handle the payment process
   const handlePayment = () => {
     const options = {
-      key: "rzp_live_LyazQXwGOFAmly",
+      key: "rzp_test_X5OHvkg69oonK2",
       amount: totalCost * 100,
       currency: "INR",
       name: "PrinIT Service",
@@ -44,7 +44,6 @@ function PaymentPage() {
       handler: (response) => {
         console.log("Payment successful:", response)
         setPaymentStatus("processing")
-        // Start direct printing process
         handleDirectPrint()
       },
       prefill: {
@@ -171,96 +170,125 @@ function PaymentPage() {
     `
   }
 
-  // Enhanced direct printing with multiple methods
+  // Enhanced direct printing function
   const handleDirectPrint = async () => {
     setIsPrinting(true)
 
     try {
-      console.log("Starting direct print process...")
+      console.log("Starting enhanced silent print process...")
 
-      // Add this as the first method in handleDirectPrint
-      if (await tryElectronPrint()) {
-        console.log("Electron direct printing successful")
-        setPaymentStatus("success")
-        startCountdown()
-        return
+      // Method 1: Try Electron IPC if available
+      if (window.require) {
+        try {
+          const { ipcRenderer } = window.require("electron")
+          const printData = generateCompletePrintData()
+
+          const result = await ipcRenderer.invoke("silent-print", printData)
+          if (result.success) {
+            console.log("Electron silent print successful")
+            setPaymentStatus("success")
+            startCountdown()
+            return
+          }
+        } catch (error) {
+          console.log("Electron method not available, trying web methods...")
+        }
       }
 
-      // Method 1: Try Chrome Kiosk Mode with --kiosk-printing flag
-      if (await tryKioskModePrint()) {
-        console.log("Kiosk mode printing successful")
-        setPaymentStatus("success")
-        startCountdown()
-        return
-      }
-
-      // Method 2: Try Web Serial API for direct printer communication
-      if (await tryWebSerialPrint()) {
-        console.log("Web Serial printing successful")
-        setPaymentStatus("success")
-        startCountdown()
-        return
-      }
-
-      // Method 3: Try silent print with auto-close
-      if (await trySilentPrint()) {
-        console.log("Silent printing successful")
-        setPaymentStatus("success")
-        startCountdown()
-        return
-      }
-
-      // Method 4: Enhanced print with custom CSS
-      await enhancedDirectPrint()
+      // Method 2: Enhanced silent web printing
+      await enhancedSilentPrint()
     } catch (error) {
-      console.error("All direct printing methods failed:", error)
-      // Show user-friendly message
-      alert("Direct printing failed. Please ensure your printer is connected and try again.")
+      console.error("All printing methods failed:", error)
+      alert("Printing failed. Please ensure your printer is connected.")
       setPaymentStatus("pending")
     } finally {
       setIsPrinting(false)
     }
   }
 
-  // Enhanced direct print method
-  const enhancedDirectPrint = async () => {
-    const printWindow = window.open("", "_blank", "width=800,height=600,scrollbars=yes")
-
-    if (!printWindow) {
-      throw new Error("Popup blocked - please allow popups for printing")
+  // Generate complete print data for all content types
+  const generateCompletePrintData = () => {
+    const printData = {
+      timestamp: new Date().toISOString(),
+      totalCost,
+      items: [],
     }
 
-    const printContent = generateEnhancedPrintContent()
-    printWindow.document.write(printContent)
-    printWindow.document.close()
+    // Add canvas pages
+    if (pages && pages.length > 0) {
+      pages.forEach((page) => {
+        printData.items.push({
+          type: "canvas",
+          pageId: page.id,
+          colorMode: page.colorMode,
+          items: page.items,
+          cost: page.colorMode === "color" ? 10 : 2,
+        })
+      })
+    }
+
+    // Add document pages
+    if (printQueue && printQueue.length > 0) {
+      printQueue.forEach((item) => {
+        printData.items.push({
+          type: "document",
+          file: item.file,
+          pages: item.pages,
+          colorMode: item.colorMode,
+          doubleSided: item.doubleSided,
+          cost: item.cost,
+        })
+      })
+    }
+
+    return printData
+  }
+
+  // Enhanced silent printing for web
+  const enhancedSilentPrint = async () => {
+    const printContent = await generateEnhancedPrintHTML()
+
+    // Create hidden iframe for silent printing
+    const iframe = document.createElement("iframe")
+    iframe.style.position = "absolute"
+    iframe.style.left = "-9999px"
+    iframe.style.top = "-9999px"
+    iframe.style.width = "1px"
+    iframe.style.height = "1px"
+
+    document.body.appendChild(iframe)
+
+    const iframeDoc = iframe.contentDocument || iframe.contentWindow.document
+    iframeDoc.open()
+    iframeDoc.write(printContent)
+    iframeDoc.close()
 
     // Wait for content to load
     await new Promise((resolve) => setTimeout(resolve, 2000))
 
     try {
-      printWindow.focus()
-      printWindow.print()
+      iframe.contentWindow.focus()
+      iframe.contentWindow.print()
 
-      // Auto-close after printing
+      // Clean up and show success
       setTimeout(() => {
-        printWindow.close()
+        document.body.removeChild(iframe)
         setPaymentStatus("success")
         startCountdown()
       }, 3000)
     } catch (error) {
-      console.error("Print execution failed:", error)
-      printWindow.close()
+      document.body.removeChild(iframe)
       throw error
     }
   }
 
-  // Generate enhanced print content with better formatting
-  const generateEnhancedPrintContent = () => {
-    let printContent = `
+  // Generate enhanced HTML for all print content
+  const generateEnhancedPrintHTML = async () => {
+    let html = `
     <!DOCTYPE html>
     <html>
     <head>
-      <title>PrinIT - Kiosk Print Job</title>
+      <title>PrinIT - Complete Print Job</title>
       <style>
         @page { 
           size: A4; 
@@ -273,7 +301,6 @@ function PaymentPage() {
             margin: 0;
             padding: 0;
           }
-          .no-print { display: none !important; }
           .page-break { page-break-after: always; }
           .page-break:last-child { page-break-after: avoid; }
         }
@@ -288,8 +315,8 @@ function PaymentPage() {
           height: 297mm;
           position: relative;
           background: white;
-          overflow: hidden;
           page-break-after: always;
+          box-sizing: border-box;
         }
         .print-page:last-child {
           page-break-after: avoid;
@@ -298,7 +325,6 @@ function PaymentPage() {
           width: 100%;
           height: 100%;
           position: relative;
-          background: white;
         }
         .canvas-item {
           position: absolute;
@@ -308,11 +334,6 @@ function PaymentPage() {
           height: 100%;
           object-fit: contain;
         }
-        .blank-page {
-          width: 100%;
-          height: 100%;
-          background: white;
-        }
         .bw-mode {
           filter: grayscale(100%) !important;
         }
@@ -321,36 +342,28 @@ function PaymentPage() {
           height: 100%;
           padding: 20mm;
           box-sizing: border-box;
-          background: white;
         }
       </style>
     </head>
     <body>
   `
 
-    let pageNumber = 1
-
-    // Add canvas pages with proper scaling
+    // Add canvas pages
     if (pages && pages.length > 0) {
       for (const page of pages) {
         const colorClass = page.colorMode === "bw" ? "bw-mode" : ""
 
-        printContent += `
-        <div class="print-page">
-          <div class="canvas-page ${colorClass}">
-      `
+        html += `<div class="print-page"><div class="canvas-page ${colorClass}">`
 
-        // Add canvas items with proper positioning
         if (page.items && page.items.length > 0) {
           for (const item of page.items) {
             const fileURL = URL.createObjectURL(item.file)
-            // Convert pixels to mm (assuming 96 DPI)
             const xMM = (item.x * 0.264583).toFixed(2)
             const yMM = (item.y * 0.264583).toFixed(2)
             const widthMM = (item.width * 0.264583).toFixed(2)
             const heightMM = (item.height * 0.264583).toFixed(2)
 
-            printContent += `
+            html += `
             <div class="canvas-item" style="
               left: ${xMM}mm;
               top: ${yMM}mm;
@@ -364,62 +377,38 @@ function PaymentPage() {
           }
         }
 
-        printContent += `
-          </div>
-        </div>
-      `
-        pageNumber++
+        html += `</div></div>`
       }
     }
 
-    // Add blank sheets
-    if (blankSheets > 0) {
-      for (let i = 0; i < blankSheets; i++) {
-        printContent += `
-        <div class="print-page">
-          <div class="blank-page"></div>
-        </div>
-      `
-        pageNumber++
-      }
-    }
-
-    // Add document pages (placeholder - you'd need to render actual document content)
+    // Add document pages
     if (printQueue && printQueue.length > 0) {
       for (const item of printQueue) {
         const colorClass = item.colorMode === "bw" ? "bw-mode" : ""
 
         for (let i = 0; i < item.pages; i++) {
-          printContent += `
+          html += `
           <div class="print-page">
             <div class="document-page ${colorClass}">
-              <h2 style="margin-top: 0;">${item.file.name}</h2>
+              <h2>${item.file.name}</h2>
               <p>Page ${i + 1} of ${item.pages}</p>
-              <p>Print Mode: ${item.colorMode === "color" ? "Color" : "Black & White"}</p>
-              <p>Print Style: ${item.doubleSided ? "Double-sided" : "Single-sided"}</p>
+              <p>Mode: ${item.colorMode === "color" ? "Color" : "B&W"}</p>
+              <p>Style: ${item.doubleSided ? "Double-sided" : "Single-sided"}</p>
               <div style="border: 1px solid #ddd; padding: 20px; margin-top: 40px; min-height: 200mm;">
                 <p><strong>Document Content:</strong></p>
                 <p>File: ${item.file.name}</p>
                 <p>Size: ${(item.file.size / 1024).toFixed(1)} KB</p>
                 <p>Type: ${item.file.type}</p>
-                <div style="margin-top: 40px; color: #666;">
-                  [Document content would be rendered here in a production system]
-                </div>
               </div>
             </div>
           </div>
         `
-          pageNumber++
         }
       }
     }
 
-    printContent += `
-    </body>
-    </html>
-  `
-
-    return printContent
+    html += `</body></html>`
+    return html
   }
 
   // Method 1: Kiosk Mode Printing (Chrome with --kiosk-printing flag)

@@ -3,7 +3,6 @@
 import { useState, useRef, useEffect } from "react"
 import { useLocation, useNavigate } from "react-router-dom"
 import {
-  ArrowLeft,
   Plus,
   Copy,
   Trash,
@@ -17,8 +16,6 @@ import {
   RotateCw,
   FileIcon as FileBlank,
   X,
-  MinusCircle,
-  PlusCircle,
   ZoomIn,
   ZoomOut,
 } from "lucide-react"
@@ -36,7 +33,6 @@ function FilesPage() {
   const [draggingFile, setDraggingFile] = useState(null)
   const [draggingItem, setDraggingItem] = useState(null)
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 })
-  const [blankSheets, setBlankSheets] = useState(0)
 
   // State for image editing
   const [selectedItem, setSelectedItem] = useState(null)
@@ -126,7 +122,7 @@ function FilesPage() {
     })
   }
 
-  // Function to get Word document page count (much more accurate analysis)
+  // Function to get Word document page count
   const getWordDocPageCount = async (file) => {
     return new Promise((resolve) => {
       console.log("Analyzing Word document:", file.name, "Size:", (file.size / 1024).toFixed(1), "KB")
@@ -138,7 +134,6 @@ function FilesPage() {
           const fileName = file.name.toLowerCase()
 
           if (fileName.endsWith(".docx")) {
-            // DOCX files - more sophisticated analysis
             try {
               const uint8Array = new Uint8Array(arrayBuffer)
               const textDecoder = new TextDecoder("utf-8", { fatal: false })
@@ -149,7 +144,7 @@ function FilesPage() {
                 /<w:br[^>]*w:type="page"[^>]*\/>/g,
                 /<w:lastRenderedPageBreak\/>/g,
                 /<w:pageBreakBefore\/>/g,
-                /<w:sectPr>/g, // Section breaks often indicate new pages
+                /<w:sectPr>/g,
               ]
 
               let explicitPageBreaks = 0
@@ -158,102 +153,76 @@ function FilesPage() {
                 if (matches) explicitPageBreaks += matches.length
               })
 
-              // Count content indicators
               const paragraphs = (content.match(/<w:p[^>]*>/g) || []).length
               const textRuns = (content.match(/<w:t[^>]*>.*?<\/w:t>/g) || []).length
               const tables = (content.match(/<w:tbl>/g) || []).length
               const images = (content.match(/<w:drawing>/g) || []).length
 
-              // Calculate content density score
               const fileSizeKB = file.size / 1024
               let estimatedPages = 1
 
               if (explicitPageBreaks > 0) {
-                // Use explicit page breaks as primary indicator
                 estimatedPages = explicitPageBreaks + 1
               } else {
-                // Advanced estimation based on content analysis
                 if (fileSizeKB < 25) {
                   estimatedPages = 1
                 } else if (fileSizeKB < 50) {
-                  // Small documents
                   estimatedPages = Math.max(1, Math.ceil(paragraphs / 20))
                 } else if (fileSizeKB < 100) {
-                  // Medium documents
                   const contentScore = paragraphs * 0.8 + tables * 5 + images * 3
                   estimatedPages = Math.max(1, Math.ceil(contentScore / 25))
                 } else if (fileSizeKB < 300) {
-                  // Large documents
                   const contentScore = paragraphs * 0.6 + tables * 4 + images * 2
                   estimatedPages = Math.max(2, Math.ceil(contentScore / 20))
                 } else if (fileSizeKB < 500) {
-                  // Very large documents
                   estimatedPages = Math.max(3, Math.ceil(fileSizeKB / 40))
                 } else {
-                  // Huge documents
                   estimatedPages = Math.max(5, Math.ceil(fileSizeKB / 50))
                 }
 
-                // Adjust for text density
                 if (textRuns > 0 && paragraphs > 0) {
                   const textDensity = textRuns / paragraphs
                   if (textDensity > 4) {
-                    estimatedPages = Math.ceil(estimatedPages * 1.3) // Very dense text
+                    estimatedPages = Math.ceil(estimatedPages * 1.3)
                   } else if (textDensity < 1.5) {
-                    estimatedPages = Math.ceil(estimatedPages * 0.7) // Sparse text
+                    estimatedPages = Math.ceil(estimatedPages * 0.7)
                   }
                 }
               }
 
-              // Final bounds checking
               estimatedPages = Math.min(Math.max(estimatedPages, 1), 100)
-
-              console.log(`DOCX Analysis - ${file.name}:`)
-              console.log(`- Size: ${fileSizeKB.toFixed(1)}KB`)
-              console.log(`- Explicit page breaks: ${explicitPageBreaks}`)
-              console.log(`- Paragraphs: ${paragraphs}, Text runs: ${textRuns}`)
-              console.log(`- Tables: ${tables}, Images: ${images}`)
-              console.log(`- Final estimated pages: ${estimatedPages}`)
-
               resolve(estimatedPages)
             } catch (error) {
               console.error("Error parsing DOCX:", error)
-              // Improved fallback
               const fileSizeKB = file.size / 1024
               const fallbackPages = Math.max(1, Math.min(Math.ceil(fileSizeKB / 25), 20))
               resolve(fallbackPages)
             }
           } else if (fileName.endsWith(".doc")) {
-            // DOC files - binary analysis with better heuristics
             const fileSizeKB = file.size / 1024
             let estimatedPages
 
-            // More accurate DOC estimation based on file size patterns
             if (fileSizeKB < 30) {
               estimatedPages = 1
             } else if (fileSizeKB < 60) {
               estimatedPages = 2
             } else if (fileSizeKB < 120) {
-              estimatedPages = Math.ceil(fileSizeKB / 35) // ~35KB per page
+              estimatedPages = Math.ceil(fileSizeKB / 35)
             } else if (fileSizeKB < 300) {
-              estimatedPages = Math.ceil(fileSizeKB / 45) // ~45KB per page
+              estimatedPages = Math.ceil(fileSizeKB / 45)
             } else if (fileSizeKB < 600) {
-              estimatedPages = Math.ceil(fileSizeKB / 55) // ~55KB per page
+              estimatedPages = Math.ceil(fileSizeKB / 55)
             } else {
-              estimatedPages = Math.ceil(fileSizeKB / 70) // ~70KB per page
+              estimatedPages = Math.ceil(fileSizeKB / 70)
             }
 
-            // Binary pattern analysis for page breaks
             try {
               const uint8Array = new Uint8Array(arrayBuffer)
               let pageBreakIndicators = 0
 
-              // Look for page break patterns in DOC binary
               for (let i = 0; i < uint8Array.length - 8; i++) {
-                // Form feed character (0x0C)
                 if (uint8Array[i] === 0x0c) pageBreakIndicators++
 
-                // DOC page break signatures
                 if (
                   uint8Array[i] === 0x01 &&
                   uint8Array[i + 1] === 0x00 &&
@@ -272,23 +241,15 @@ function FilesPage() {
               console.log("Binary analysis failed for DOC file")
             }
 
-            // Final bounds
             estimatedPages = Math.min(Math.max(estimatedPages, 1), 100)
-
-            console.log(`DOC Analysis - ${file.name}:`)
-            console.log(`- Size: ${fileSizeKB.toFixed(1)}KB`)
-            console.log(`- Estimated pages: ${estimatedPages}`)
-
             resolve(estimatedPages)
           } else {
-            // Other document types
             const fileSizeKB = file.size / 1024
             const estimatedPages = Math.max(1, Math.min(Math.ceil(fileSizeKB / 40), 50))
             resolve(estimatedPages)
           }
         } catch (error) {
           console.error("Error analyzing document:", error)
-          // Ultimate fallback
           const fileSizeKB = file.size / 1024
           const fallbackPages = Math.max(1, Math.min(Math.ceil(fileSizeKB / 40), 20))
           resolve(fallbackPages)
@@ -348,25 +309,19 @@ function FilesPage() {
 
   // Handle deleting a page
   const deletePage = (pageId) => {
-    // Allow deleting even if it's the only page
     const newPages = pages.filter((page) => page.id !== pageId)
 
-    // If we're deleting the last page, don't add a new blank page
-    // This allows users to work with only blank sheets if they want
     if (newPages.length > 0) {
-      // Renumber the pages to ensure sequential IDs
       newPages.forEach((page, index) => {
         page.id = index + 1
       })
 
-      // Set active page to the previous page or the first page
       const pageIndex = pages.findIndex((page) => page.id === pageId)
       const newActivePageId =
         pageIndex > 0 ? (pageIndex < newPages.length ? pageIndex : newPages.length) : newPages.length > 0 ? 1 : 1
 
       setActivePage(newActivePageId)
     } else {
-      // If all pages are deleted, we don't have any active page
       setActivePage(null)
     }
 
@@ -403,7 +358,6 @@ function FilesPage() {
       const x = e.clientX - canvasRect.left
       const y = e.clientY - canvasRect.top
 
-      // Add the image to the current page
       setPages(
         pages.map((page) => {
           if (page.id === activePage) {
@@ -433,7 +387,6 @@ function FilesPage() {
       const x = e.clientX - canvasRect.left - dragOffset.x
       const y = e.clientY - canvasRect.top - dragOffset.y
 
-      // Move the item to the new position
       setPages(
         pages.map((page) => {
           if (page.id === activePage) {
@@ -502,7 +455,6 @@ function FilesPage() {
     let newX = initialX
     let newY = initialY
 
-    // Calculate new dimensions based on the handle being dragged
     switch (handle) {
       case "bottom-right":
         newWidth = Math.max(50, initialWidth + deltaX)
@@ -526,7 +478,6 @@ function FilesPage() {
         break
     }
 
-    // Update the item dimensions
     setPages(
       pages.map((page) => {
         if (page.id === activePage) {
@@ -626,13 +577,11 @@ function FilesPage() {
   const handleCropEnd = () => {
     if (!selectedItem || !cropMode) return
 
-    // Calculate crop dimensions
     const cropX = Math.min(cropStart.x, cropEnd.x)
     const cropY = Math.min(cropStart.y, cropEnd.y)
     const cropWidth = Math.abs(cropEnd.x - cropStart.x)
     const cropHeight = Math.abs(cropEnd.y - cropStart.y)
 
-    // Apply crop if it's valid
     if (cropWidth > 10 && cropHeight > 10) {
       setPages(
         pages.map((page) => {
@@ -702,11 +651,10 @@ function FilesPage() {
   const showFileOptions = async (file) => {
     console.log("Clicked on file:", file.name, "Type:", file.type)
 
-    // Show modal immediately with loading state
     setFileOptions({
       showModal: true,
       file,
-      pageCount: 0, // Start with 0 to show loading
+      pageCount: 0,
       printSettings: {
         doubleSided: false,
         pageRange: "all",
@@ -719,7 +667,6 @@ function FilesPage() {
     let pageCount = 1
 
     try {
-      // Get actual page count for different file types
       if (file.type === "application/pdf") {
         console.log("Counting PDF pages for:", file.name)
         pageCount = await getPDFPageCount(file)
@@ -732,10 +679,9 @@ function FilesPage() {
         pageCount = await getWordDocPageCount(file)
         console.log("Word document page count:", pageCount)
       } else {
-        // For other file types, estimate based on file size
         const fileSizeKB = file.size / 1024
         if (fileSizeKB > 100) {
-          pageCount = Math.max(1, Math.ceil(fileSizeKB / 100)) // Conservative estimate
+          pageCount = Math.max(1, Math.ceil(fileSizeKB / 100))
         } else {
           pageCount = 1
         }
@@ -746,7 +692,6 @@ function FilesPage() {
       pageCount = 1
     }
 
-    // Update the modal with the actual page count
     setFileOptions({
       showModal: true,
       file,
@@ -764,16 +709,12 @@ function FilesPage() {
   // Function to calculate cost for double-sided printing
   const calculateDoubleSidedCost = (totalPages, isColor, isDoubleSided) => {
     if (!isDoubleSided) {
-      // Single-sided printing
       return totalPages * (isColor ? 10 : 2)
     }
 
-    // Double-sided printing
     if (isColor) {
-      // Color: ₹10 per side
       return totalPages * 10
     } else {
-      // B&W double-sided: ₹3 per sheet (2 pages), ₹2 for remaining single page
       const fullSheets = Math.floor(totalPages / 2)
       const remainingPages = totalPages % 2
       return fullSheets * 3 + remainingPages * 2
@@ -782,7 +723,6 @@ function FilesPage() {
 
   // Add function to add file to print queue
   const addFileToPrintQueue = () => {
-    // Calculate pages to print based on range
     let pagesToPrint = 0
 
     if (fileOptions.printSettings.pageRange === "all") {
@@ -791,14 +731,12 @@ function FilesPage() {
       pagesToPrint = fileOptions.printSettings.endPage - fileOptions.printSettings.startPage + 1
     }
 
-    // Calculate cost using the new function
     const itemCost = calculateDoubleSidedCost(
       pagesToPrint,
       fileOptions.printSettings.colorMode === "color",
       fileOptions.printSettings.doubleSided,
     )
 
-    // Add to print queue
     setPrintQueue([
       ...printQueue,
       {
@@ -816,7 +754,7 @@ function FilesPage() {
   // Add print queue state
   const [printQueue, setPrintQueue] = useState([])
 
-  // Function to calculate canvas pages cost (single-sided only)
+  // Function to calculate canvas pages cost
   const calculateCanvasPagesCost = () => {
     let totalCost = 0
 
@@ -838,7 +776,6 @@ function FilesPage() {
       }
     }
 
-    // Always single-sided pricing
     pagesToCalculate.forEach((page) => {
       totalCost += page.colorMode === "color" ? 10 : 2
     })
@@ -850,16 +787,11 @@ function FilesPage() {
   const calculateCost = () => {
     let totalCost = 0
 
-    // Cost for canvas pages
     totalCost += calculateCanvasPagesCost()
 
-    // Cost for print queue items - use pre-calculated costs
     printQueue.forEach((item) => {
       totalCost += item.cost || 0
     })
-
-    // Cost for blank sheets
-    totalCost += blankSheets * 1 // 1 Rs per blank sheet
 
     return totalCost
   }
@@ -904,11 +836,39 @@ function FilesPage() {
     }
   }, [])
 
+  // Word to PDF conversion function
+  const convertWordToPDF = async (file) => {
+    try {
+      if (file.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
+        console.log("Converting Word document to PDF...")
+        // For now, just return the original file as we'll handle conversion in the backend
+        return new File([file], file.name.replace(/\.(docx?|DOCX?)$/, ".pdf"), { type: "application/pdf" })
+      }
+      return file
+    } catch (error) {
+      console.error("Word to PDF conversion failed:", error)
+      return file
+    }
+  }
+
+  // Update the document file handling to convert Word docs
+  const handleDocumentClick = async (file) => {
+    let processedFile = file
+
+    if (file.type.includes("word") || file.name.toLowerCase().includes(".doc")) {
+      console.log("Converting Word document to PDF...")
+      processedFile = await convertWordToPDF(file)
+    }
+
+    showFileOptions(processedFile)
+  }
+
   return (
     <div className="files-page">
       <div className="navbar">
-        <div class="logo1" onClick={() => navigate("/")}>
-              <span class="home">HOME</span><span class="num">25</span>
+        <div className="logo1" onClick={() => navigate("/")}>
+          <span className="home">HOME</span>
+          <span className="num">25</span>
         </div>
         <div className="title">File Editor</div>
       </div>
@@ -975,13 +935,14 @@ function FilesPage() {
               </div>
               <ul className="file-list">
                 {fileCategories.documents.map((file, index) => (
-                  <li key={index} className="file-item" onClick={() => showFileOptions(file)}>
+                  <li key={index} className="file-item" onClick={() => handleDocumentClick(file)}>
                     <div className="file-icon">
                       <FileIcon size={24} />
                     </div>
                     <div className="file-info">
                       <div className="file-name">
                         {file.name.length > 15 ? `${file.name.substring(0, 15)}...` : file.name}
+                        {file.type.includes("word") && <span className="conversion-badge">→PDF</span>}
                       </div>
                       <div className="file-size">{(file.size / 1024).toFixed(1)} KB</div>
                     </div>
@@ -990,65 +951,44 @@ function FilesPage() {
               </ul>
             </div>
 
-            <div className="category">
-              <div className="category-title">
-                <FileBlank size={18} />
-                <span>Blank A4 Sheets</span>
+            {printQueue.length > 0 && (
+              <div className="print-queue">
+                <div className="category-header">
+                  <h3>Print Queue</h3>
+                </div>
+                <ul className="queue-list">
+                  {printQueue.map((item, index) => (
+                    <li key={index} className="queue-item">
+                      <div className="file-icon">
+                        {item.file.type.startsWith("image/") ? (
+                          <ImageIcon size={24} />
+                        ) : item.file.type === "application/pdf" ? (
+                          <FileText size={24} />
+                        ) : (
+                          <FileIcon size={24} />
+                        )}
+                      </div>
+                      <div className="file-info">
+                        <div className="file-name">
+                          {item.file.name.length > 15 ? `${item.file.name.substring(0, 15)}...` : item.file.name}
+                        </div>
+                        <div className="file-details">
+                          {item.pages} pages • {item.colorMode === "color" ? "Color" : "B&W"} •{" "}
+                          {item.doubleSided ? "Double-sided" : "Single-sided"}
+                        </div>
+                      </div>
+                      <button
+                        className="remove-button"
+                        onClick={() => setPrintQueue(printQueue.filter((_, i) => i !== index))}
+                      >
+                        <Trash size={16} />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
               </div>
-              <div className="blank-sheets-control">
-                <button
-                  className="blank-sheet-button"
-                  onClick={() => setBlankSheets(Math.max(0, blankSheets - 1))}
-                  disabled={blankSheets === 0}
-                >
-                  <MinusCircle size={20} />
-                </button>
-                <div className="blank-sheet-count">{blankSheets}</div>
-                <button className="blank-sheet-button" onClick={() => setBlankSheets(blankSheets + 1)}>
-                  <PlusCircle size={20} />
-                </button>
-                <div className="blank-sheet-price">₹{blankSheets} (₹1 each)</div>
-              </div>
-            </div>
+            )}
           </div>
-
-          {printQueue.length > 0 && (
-            <div className="print-queue">
-              <div className="category-header">
-                <h3>Print Queue</h3>
-              </div>
-              <ul className="queue-list">
-                {printQueue.map((item, index) => (
-                  <li key={index} className="queue-item">
-                    <div className="file-icon">
-                      {item.file.type.startsWith("image/") ? (
-                        <ImageIcon size={24} />
-                      ) : item.file.type === "application/pdf" ? (
-                        <FileText size={24} />
-                      ) : (
-                        <FileIcon size={24} />
-                      )}
-                    </div>
-                    <div className="file-info">
-                      <div className="file-name">
-                        {item.file.name.length > 15 ? `${item.file.name.substring(0, 15)}...` : item.file.name}
-                      </div>
-                      <div className="file-details">
-                        {item.pages} pages • {item.colorMode === "color" ? "Color" : "B&W"} •{" "}
-                        {item.doubleSided ? "Double-sided" : "Single-sided"}
-                      </div>
-                    </div>
-                    <button
-                      className="remove-button"
-                      onClick={() => setPrintQueue(printQueue.filter((_, i) => i !== index))}
-                    >
-                      <Trash size={16} />
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
         </div>
 
         <div className="canvas-area">
@@ -1196,7 +1136,7 @@ function FilesPage() {
                 <div className="no-pages-content">
                   <FileBlank size={48} />
                   <h3>No Canvas Pages</h3>
-                  <p>You are only using blank A4 sheets</p>
+                  <p>Add a canvas page to start designing</p>
                   <button className="toolbar-button" onClick={addNewPage}>
                     <Plus size={16} />
                     <span>Add Canvas Page</span>
@@ -1249,63 +1189,6 @@ function FilesPage() {
             ) : (
               <div className="print-panel">
                 <div className="print-options">
-                  <div className="option-group">
-                    
-
-                    {printSettings.pageRange === "custom" && (
-                      <div className="page-range-inputs">
-                        <div className="input-group">
-                          <label>From:</label>
-                          <input
-                            type="number"
-                            min="1"
-                            max={pages.length}
-                            value={printSettings.startPage}
-                            onChange={(e) =>
-                              setPrintSettings({
-                                ...printSettings,
-                                startPage: Math.min(Number.parseInt(e.target.value) || 1, pages.length),
-                              })
-                            }
-                          />
-                        </div>
-                        <div className="input-group">
-                          <label>To:</label>
-                          <input
-                            type="number"
-                            min={printSettings.startPage}
-                            max={pages.length}
-                            value={printSettings.endPage}
-                            onChange={(e) =>
-                              setPrintSettings({
-                                ...printSettings,
-                                endPage: Math.min(
-                                  Number.parseInt(e.target.value) || printSettings.startPage,
-                                  pages.length,
-                                ),
-                              })
-                            }
-                          />
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Remove this entire section from the print-panel:
-                  
-                  <div className="option-group">
-                    <h4>Print Options</h4>
-                    <label className="checkbox-label">
-                      <input
-                        type="checkbox"
-                        checked={printSettings.doubleSided}
-                        onChange={() => setPrintSettings({ ...printSettings, doubleSided: !printSettings.doubleSided })}
-                      />
-                      Double-sided printing
-                    </label>
-                  </div>
-                  */}
-
                   <div className="cost-summary">
                     <h4>Cost Summary</h4>
                     <div className="cost-details">
@@ -1359,17 +1242,6 @@ function FilesPage() {
                         </div>
                       )}
 
-                      {/* Blank sheets */}
-                      {blankSheets > 0 && (
-                        <div className="cost-section">
-                          <h5>Blank Sheets</h5>
-                          <div className="cost-item">
-                            <span>Blank A4 Sheets ({blankSheets})</span>
-                            <span>₹{blankSheets}</span>
-                          </div>
-                        </div>
-                      )}
-
                       <div className="total-cost">
                         <span>Total Cost:</span>
                         <span>₹{calculateCost()}</span>
@@ -1400,7 +1272,7 @@ function FilesPage() {
                   totalCost: calculateCost(),
                   pages: pages,
                   printQueue: printQueue,
-                  blankSheets: blankSheets,
+                  blankSheets: 0,
                 },
               })
             }
@@ -1413,156 +1285,168 @@ function FilesPage() {
 
       {fileOptions.showModal && (
         <div className="print-modal">
-          <div className="print-modal-content">
-            <h2>Print Options: {fileOptions.file.name}</h2>
+          <div className="print-modal-content-large">
+            <div className="modal-left">
+              <h2>Print Options: {fileOptions.file.name}</h2>
 
-            {fileOptions.pageCount === 0 ? (
-              <div style={{ textAlign: "center", padding: "20px" }}>
-                <p>Analyzing document...</p>
-                <p>Counting pages, please wait...</p>
-              </div>
-            ) : (
-              <div className="print-options">
-                <div className="option-group">
-                  <h3>Page Range</h3>
-                  <div className="radio-group">
-                    <label>
-                      <input
-                        type="radio"
-                        name="filePageRange"
-                        value="all"
-                        checked={fileOptions.printSettings.pageRange === "all"}
-                        onChange={() =>
-                          setFileOptions({
-                            ...fileOptions,
-                            printSettings: {
-                              ...fileOptions.printSettings,
-                              pageRange: "all",
-                            },
-                          })
-                        }
-                      />
-                      All Pages ({fileOptions.pageCount} pages)
-                    </label>
-                    <label>
-                      <input
-                        type="radio"
-                        name="filePageRange"
-                        value="custom"
-                        checked={fileOptions.printSettings.pageRange === "custom"}
-                        onChange={() =>
-                          setFileOptions({
-                            ...fileOptions,
-                            printSettings: {
-                              ...fileOptions.printSettings,
-                              pageRange: "custom",
-                            },
-                          })
-                        }
-                      />
-                      Custom Range
-                    </label>
-                  </div>
-
-                  {fileOptions.printSettings.pageRange === "custom" && (
-                    <div className="page-range-inputs">
-                      <div className="input-group">
-                        <label>From:</label>
+              {fileOptions.pageCount === 0 ? (
+                <div style={{ textAlign: "center", padding: "20px" }}>
+                  <p>Analyzing document...</p>
+                </div>
+              ) : (
+                <div className="print-options">
+                  <div className="option-group">
+                    <h3>Page Range</h3>
+                    <div className="radio-group">
+                      <label>
                         <input
-                          type="number"
-                          min="1"
-                          max={fileOptions.pageCount}
-                          value={fileOptions.printSettings.startPage}
-                          onChange={(e) =>
+                          type="radio"
+                          name="filePageRange"
+                          value="all"
+                          checked={fileOptions.printSettings.pageRange === "all"}
+                          onChange={() =>
                             setFileOptions({
                               ...fileOptions,
-                              printSettings: {
-                                ...fileOptions.printSettings,
-                                startPage: Math.min(Number.parseInt(e.target.value) || 1, fileOptions.pageCount),
-                              },
+                              printSettings: { ...fileOptions.printSettings, pageRange: "all" },
                             })
                           }
                         />
-                      </div>
-                      <div className="input-group">
-                        <label>To:</label>
+                        All Pages (1-{fileOptions.pageCount})
+                      </label>
+                      <label>
                         <input
-                          type="number"
-                          min={fileOptions.printSettings.startPage}
-                          max={fileOptions.pageCount}
-                          value={fileOptions.printSettings.endPage}
-                          onChange={(e) =>
+                          type="radio"
+                          name="filePageRange"
+                          value="custom"
+                          checked={fileOptions.printSettings.pageRange === "custom"}
+                          onChange={() =>
                             setFileOptions({
                               ...fileOptions,
-                              printSettings: {
-                                ...fileOptions.printSettings,
-                                endPage: Math.min(
+                              printSettings: { ...fileOptions.printSettings, pageRange: "custom" },
+                            })
+                          }
+                        />
+                        Custom Range
+                      </label>
+                    </div>
+
+                    {fileOptions.printSettings.pageRange === "custom" && (
+                      <div className="page-range-inputs">
+                        <div className="range-input-group">
+                          <label>From Page:</label>
+                          <input
+                            type="number"
+                            min="1"
+                            max={fileOptions.pageCount}
+                            value={fileOptions.printSettings.startPage}
+                            onChange={(e) => {
+                              const value = Math.max(
+                                1,
+                                Math.min(Number.parseInt(e.target.value) || 1, fileOptions.pageCount),
+                              )
+                              setFileOptions({
+                                ...fileOptions,
+                                printSettings: { ...fileOptions.printSettings, startPage: value },
+                              })
+                            }}
+                            placeholder="1"
+                          />
+                        </div>
+                        <div className="range-input-group">
+                          <label>To Page:</label>
+                          <input
+                            type="number"
+                            min={fileOptions.printSettings.startPage}
+                            max={fileOptions.pageCount}
+                            value={fileOptions.printSettings.endPage}
+                            onChange={(e) => {
+                              const value = Math.max(
+                                fileOptions.printSettings.startPage,
+                                Math.min(
                                   Number.parseInt(e.target.value) || fileOptions.printSettings.startPage,
                                   fileOptions.pageCount,
                                 ),
-                              },
-                            })
-                          }
-                        />
+                              )
+                              setFileOptions({
+                                ...fileOptions,
+                                printSettings: { ...fileOptions.printSettings, endPage: value },
+                              })
+                            }}
+                            placeholder={fileOptions.pageCount.toString()}
+                          />
+                        </div>
                       </div>
-                    </div>
-                  )}
-                </div>
+                    )}
+                  </div>
 
-                <div className="option-group">
-                  <h3>Print Options</h3>
-                  <label className="checkbox-label">
-                    <input
-                      type="checkbox"
-                      checked={fileOptions.printSettings.doubleSided}
-                      onChange={() =>
-                        setFileOptions({
-                          ...fileOptions,
-                          printSettings: {
-                            ...fileOptions.printSettings,
-                            doubleSided: !fileOptions.printSettings.doubleSided,
-                          },
-                        })
-                      }
-                    />
-                    Double-sided printing
-                  </label>
-
-                  <div className="color-toggle mt-3">
-                    <label className="toggle-label">
+                  <div className="option-group">
+                    <h3>Print Options</h3>
+                    <label className="checkbox-label">
                       <input
                         type="checkbox"
-                        checked={fileOptions.printSettings.colorMode === "color"}
+                        checked={fileOptions.printSettings.doubleSided}
                         onChange={() =>
                           setFileOptions({
                             ...fileOptions,
                             printSettings: {
                               ...fileOptions.printSettings,
-                              colorMode: fileOptions.printSettings.colorMode === "color" ? "bw" : "color",
+                              doubleSided: !fileOptions.printSettings.doubleSided,
                             },
                           })
                         }
                       />
-                      <span className="toggle-slider"></span>
-                      <span className="toggle-text">
-                        {fileOptions.printSettings.colorMode === "color" ? "Color" : "B&W"}
-                      </span>
+                      Double-sided printing
                     </label>
+
+                    <div className="color-toggle mt-3">
+                      <label className="toggle-label">
+                        <input
+                          type="checkbox"
+                          checked={fileOptions.printSettings.colorMode === "color"}
+                          onChange={() =>
+                            setFileOptions({
+                              ...fileOptions,
+                              printSettings: {
+                                ...fileOptions.printSettings,
+                                colorMode: fileOptions.printSettings.colorMode === "color" ? "bw" : "color",
+                              },
+                            })
+                          }
+                        />
+                        <span className="toggle-slider"></span>
+                        <span className="toggle-text">
+                          {fileOptions.printSettings.colorMode === "color" ? "Color" : "B&W"}
+                        </span>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="modal-actions">
+                <button className="cancel-button" onClick={() => setFileOptions({ ...fileOptions, showModal: false })}>
+                  Cancel
+                </button>
+                {fileOptions.pageCount > 0 && (
+                  <button className="payment-button" onClick={addFileToPrintQueue}>
+                    <Printer size={16} />
+                    <span>Add to Print Queue</span>
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <div className="modal-right">
+              <div className="pdf-viewer">
+                <h3>Document Preview</h3>
+                <div className="pdf-viewer-container">
+                  <div className="pdf-placeholder">
+                    <p>PDF preview will be available here</p>
+                    <p>File: {fileOptions.file?.name}</p>
+                    <p>Pages: {fileOptions.pageCount}</p>
                   </div>
                 </div>
               </div>
-            )}
-
-            <div className="modal-actions">
-              <button className="cancel-button" onClick={() => setFileOptions({ ...fileOptions, showModal: false })}>
-                Cancel
-              </button>
-              {fileOptions.pageCount > 0 && (
-                <button className="payment-button" id="queueb" onClick={addFileToPrintQueue}>
-                  <Printer size={16} />
-                  <span>Add to Print Queue</span>
-                </button>
-              )}
             </div>
           </div>
         </div>
