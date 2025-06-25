@@ -1,0 +1,14 @@
+directories:
+  output: release
+  buildResources: build
+appId: com.prinit.desktop
+productName: PrinIT
+files:
+  - filter:
+      - dist
+      - electron.cjs
+win:
+  target:
+    - nsis
+  icon: icon.ico
+electronVersion: 37.0.0

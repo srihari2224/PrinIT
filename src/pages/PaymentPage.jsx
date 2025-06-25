@@ -69,14 +69,126 @@ function PaymentPage() {
     razorpay.open()
   }
 
-  // Direct printing without dialog - Multiple approaches
+  // Method for Electron app direct printing
+  const tryElectronPrint = async () => {
+    try {
+      // Check if running in Electron
+      if (window.require) {
+        const { ipcRenderer } = window.require("electron")
+
+        const printData = {
+          pages: [],
+          totalCost,
+          timestamp: new Date().toISOString(),
+        }
+
+        // Add canvas pages
+        if (pages && pages.length > 0) {
+          for (const page of pages) {
+            printData.pages.push({
+              type: "canvas",
+              content: generatePageContent(page),
+              colorMode: page.colorMode,
+            })
+          }
+        }
+
+        // Add blank sheets
+        if (blankSheets > 0) {
+          for (let i = 0; i < blankSheets; i++) {
+            printData.pages.push({
+              type: "blank",
+              content: generateBlankPageContent(),
+            })
+          }
+        }
+
+        // Add document pages
+        if (printQueue && printQueue.length > 0) {
+          for (const item of printQueue) {
+            for (let i = 0; i < item.pages; i++) {
+              printData.pages.push({
+                type: "document",
+                content: generateDocumentPageContent(item, i),
+                colorMode: item.colorMode,
+                doubleSided: item.doubleSided,
+              })
+            }
+          }
+        }
+
+        const result = await ipcRenderer.invoke("direct-print", printData)
+
+        if (result.success) {
+          console.log("Electron direct print successful")
+          return true
+        } else {
+          console.error("Electron print failed:", result.error)
+          return false
+        }
+      }
+      return false
+    } catch (error) {
+      console.error("Electron print method failed:", error)
+      return false
+    }
+  }
+
+  // Helper functions for generating print content
+  const generatePageContent = (page) => {
+    // Generate print-ready content for canvas page
+    let content = `<div class="canvas-page ${page.colorMode === "bw" ? "bw-mode" : ""}">`
+
+    if (page.items && page.items.length > 0) {
+      for (const item of page.items) {
+        content += `
+          <div style="position: absolute; left: ${item.x}px; top: ${item.y}px; width: ${item.width}px; height: ${item.height}px; transform: rotate(${item.rotation || 0}deg);">
+            <img src="${URL.createObjectURL(item.file)}" style="width: 100%; height: 100%; object-fit: contain;" />
+          </div>
+        `
+      }
+    }
+
+    content += "</div>"
+    return content
+  }
+
+  const generateBlankPageContent = () => {
+    return '<div class="blank-page" style="width: 210mm; height: 297mm; background: white;"></div>'
+  }
+
+  const generateDocumentPageContent = (item, pageIndex) => {
+    return `
+      <div class="document-page ${item.colorMode === "bw" ? "bw-mode" : ""}">
+        <h2>${item.file.name}</h2>
+        <p>Page ${pageIndex + 1} of ${item.pages}</p>
+        <p>Mode: ${item.colorMode === "color" ? "Color" : "B&W"}</p>
+        <p>Style: ${item.doubleSided ? "Double-sided" : "Single-sided"}</p>
+        <div style="border: 1px solid #ddd; padding: 20px; margin-top: 40px; min-height: 400px;">
+          <p>[Document content for ${item.file.name}]</p>
+        </div>
+      </div>
+    `
+  }
+
+  // Enhanced direct printing with multiple methods
   const handleDirectPrint = async () => {
     setIsPrinting(true)
 
     try {
-      // Method 1: Try Chrome Kiosk Mode printing
+      console.log("Starting direct print process...")
+
+      // Add this as the first method in handleDirectPrint
+      if (await tryElectronPrint()) {
+        console.log("Electron direct printing successful")
+        setPaymentStatus("success")
+        startCountdown()
+        return
+      }
+
+      // Method 1: Try Chrome Kiosk Mode with --kiosk-printing flag
       if (await tryKioskModePrint()) {
-        console.log("Kiosk mode printing initiated")
+        console.log("Kiosk mode printing successful")
         setPaymentStatus("success")
         startCountdown()
         return
@@ -84,7 +196,7 @@ function PaymentPage() {
 
       // Method 2: Try Web Serial API for direct printer communication
       if (await tryWebSerialPrint()) {
-        console.log("Web Serial printing initiated")
+        console.log("Web Serial printing successful")
         setPaymentStatus("success")
         startCountdown()
         return
@@ -92,21 +204,222 @@ function PaymentPage() {
 
       // Method 3: Try silent print with auto-close
       if (await trySilentPrint()) {
-        console.log("Silent printing initiated")
+        console.log("Silent printing successful")
         setPaymentStatus("success")
         startCountdown()
         return
       }
 
-      // Method 4: Generate print data and send to backend
-      await sendPrintDataToBackend()
+      // Method 4: Enhanced print with custom CSS
+      await enhancedDirectPrint()
     } catch (error) {
-      console.error("Direct printing failed:", error)
-      // Fallback to regular print dialog
-      await fallbackPrint()
+      console.error("All direct printing methods failed:", error)
+      // Show user-friendly message
+      alert("Direct printing failed. Please ensure your printer is connected and try again.")
+      setPaymentStatus("pending")
     } finally {
       setIsPrinting(false)
     }
+  }
+
+  // Enhanced direct print method
+  const enhancedDirectPrint = async () => {
+    const printWindow = window.open("", "_blank", "width=800,height=600,scrollbars=yes")
+
+    if (!printWindow) {
+      throw new Error("Popup blocked - please allow popups for printing")
+    }
+
+    const printContent = generateEnhancedPrintContent()
+    printWindow.document.write(printContent)
+    printWindow.document.close()
+
+    // Wait for content to load
+    await new Promise((resolve) => setTimeout(resolve, 2000))
+
+    try {
+      printWindow.focus()
+      printWindow.print()
+
+      // Auto-close after printing
+      setTimeout(() => {
+        printWindow.close()
+        setPaymentStatus("success")
+        startCountdown()
+      }, 3000)
+    } catch (error) {
+      console.error("Print execution failed:", error)
+      printWindow.close()
+      throw error
+    }
+  }
+
+  // Generate enhanced print content with better formatting
+  const generateEnhancedPrintContent = () => {
+    let printContent = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>PrinIT - Kiosk Print Job</title>
+      <style>
+        @page { 
+          size: A4; 
+          margin: 0; 
+        }
+        @media print {
+          body { 
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            margin: 0;
+            padding: 0;
+          }
+          .no-print { display: none !important; }
+          .page-break { page-break-after: always; }
+          .page-break:last-child { page-break-after: avoid; }
+        }
+        body {
+          font-family: Arial, sans-serif;
+          margin: 0;
+          padding: 0;
+          background: white;
+        }
+        .print-page {
+          width: 210mm;
+          height: 297mm;
+          position: relative;
+          background: white;
+          overflow: hidden;
+          page-break-after: always;
+        }
+        .print-page:last-child {
+          page-break-after: avoid;
+        }
+        .canvas-page {
+          width: 100%;
+          height: 100%;
+          position: relative;
+          background: white;
+        }
+        .canvas-item {
+          position: absolute;
+        }
+        .canvas-item img {
+          width: 100%;
+          height: 100%;
+          object-fit: contain;
+        }
+        .blank-page {
+          width: 100%;
+          height: 100%;
+          background: white;
+        }
+        .bw-mode {
+          filter: grayscale(100%) !important;
+        }
+        .document-page {
+          width: 100%;
+          height: 100%;
+          padding: 20mm;
+          box-sizing: border-box;
+          background: white;
+        }
+      </style>
+    </head>
+    <body>
+  `
+
+    let pageNumber = 1
+
+    // Add canvas pages with proper scaling
+    if (pages && pages.length > 0) {
+      for (const page of pages) {
+        const colorClass = page.colorMode === "bw" ? "bw-mode" : ""
+
+        printContent += `
+        <div class="print-page">
+          <div class="canvas-page ${colorClass}">
+      `
+
+        // Add canvas items with proper positioning
+        if (page.items && page.items.length > 0) {
+          for (const item of page.items) {
+            const fileURL = URL.createObjectURL(item.file)
+            // Convert pixels to mm (assuming 96 DPI)
+            const xMM = (item.x * 0.264583).toFixed(2)
+            const yMM = (item.y * 0.264583).toFixed(2)
+            const widthMM = (item.width * 0.264583).toFixed(2)
+            const heightMM = (item.height * 0.264583).toFixed(2)
+
+            printContent += `
+            <div class="canvas-item" style="
+              left: ${xMM}mm;
+              top: ${yMM}mm;
+              width: ${widthMM}mm;
+              height: ${heightMM}mm;
+              transform: rotate(${item.rotation || 0}deg);
+            ">
+              <img src="${fileURL}" alt="${item.file.name}" />
+            </div>
+          `
+          }
+        }
+
+        printContent += `
+          </div>
+        </div>
+      `
+        pageNumber++
+      }
+    }
+
+    // Add blank sheets
+    if (blankSheets > 0) {
+      for (let i = 0; i < blankSheets; i++) {
+        printContent += `
+        <div class="print-page">
+          <div class="blank-page"></div>
+        </div>
+      `
+        pageNumber++
+      }
+    }
+
+    // Add document pages (placeholder - you'd need to render actual document content)
+    if (printQueue && printQueue.length > 0) {
+      for (const item of printQueue) {
+        const colorClass = item.colorMode === "bw" ? "bw-mode" : ""
+
+        for (let i = 0; i < item.pages; i++) {
+          printContent += `
+          <div class="print-page">
+            <div class="document-page ${colorClass}">
+              <h2 style="margin-top: 0;">${item.file.name}</h2>
+              <p>Page ${i + 1} of ${item.pages}</p>
+              <p>Print Mode: ${item.colorMode === "color" ? "Color" : "Black & White"}</p>
+              <p>Print Style: ${item.doubleSided ? "Double-sided" : "Single-sided"}</p>
+              <div style="border: 1px solid #ddd; padding: 20px; margin-top: 40px; min-height: 200mm;">
+                <p><strong>Document Content:</strong></p>
+                <p>File: ${item.file.name}</p>
+                <p>Size: ${(item.file.size / 1024).toFixed(1)} KB</p>
+                <p>Type: ${item.file.type}</p>
+                <div style="margin-top: 40px; color: #666;">
+                  [Document content would be rendered here in a production system]
+                </div>
+              </div>
+            </div>
+          </div>
+        `
+          pageNumber++
+        }
+      }
+    }
+
+    printContent += `
+    </body>
+    </html>
+  `
+
+    return printContent
   }
 
   // Method 1: Kiosk Mode Printing (Chrome with --kiosk-printing flag)
