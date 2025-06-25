@@ -1,29 +1,18 @@
-import { defineConfig } from "vite";
-import react from "@vitejs/plugin-react";
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+import path from 'path';
 
 export default defineConfig({
   plugins: [react()],
-  base: "./",
+  base: './',
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, 'src'),
+    },
+  },
   build: {
-    outDir: "dist",
-    assetsDir: "assets",
-    chunkSizeWarningLimit: 1500, // increases the warning threshold
-    rollupOptions: {
-      output: {
-        manualChunks(id) {
-          if (id.includes("node_modules")) {
-            // All node_modules go into vendor.js
-            return "vendor";
-          }
-          if (id.includes("pdfjs-dist")) {
-            return "pdfjs"; // separate heavy lib
-          }
-          if (id.includes("sharp")) {
-            return "sharp"; // separate native module
-          }
-        }
-      }
-    }
+    outDir: 'dist',
+    assetsDir: 'assets',
   },
   server: {
     port: 5173,

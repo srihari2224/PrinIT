@@ -49,7 +49,6 @@ function App() {
             />
             <div class="blank-paper">
               <button id="blank" onClick={() => navigate("/blank-papers")}>
-                {" "}
                 Blank Papers
               </button>
             </div>

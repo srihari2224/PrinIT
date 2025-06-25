@@ -14,10 +14,11 @@ import {
   Crop,
   RotateCcw,
   RotateCw,
-  FileIcon as FileBlank,
   X,
   ZoomIn,
   ZoomOut,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react"
 import "./FilesPage.css"
 
@@ -40,231 +41,227 @@ function FilesPage() {
   const [cropStart, setCropStart] = useState({ x: 0, y: 0 })
   const [cropEnd, setCropEnd] = useState({ x: 0, y: 0 })
 
+  // PDF viewer state
+  const [pdfDoc, setPdfDoc] = useState(null)
+  const [currentPdfPage, setCurrentPdfPage] = useState(1)
+  const [pdfCanvas, setPdfCanvas] = useState(null)
+  const [allPdfPages, setAllPdfPages] = useState([])
+
+  // State for converted documents
+  const [convertedDocs, setConvertedDocs] = useState(new Map())
+
   // Group files by type
   const fileCategories = {
     images: files.filter((file) => file.type.startsWith("image/")),
-    pdfs: files.filter((file) => file.type === "application/pdf"),
+    pdfs: [...files.filter((file) => file.type === "application/pdf"), ...Array.from(convertedDocs.values())],
     documents: files.filter(
       (file) =>
         file.type === "application/msword" ||
-        file.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        file.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
+        file.type === "text/plain",
     ),
     others: files.filter(
       (file) =>
         !file.type.startsWith("image/") &&
         file.type !== "application/pdf" &&
         file.type !== "application/msword" &&
-        file.type !== "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        file.type !== "application/vnd.openxmlformats-officedocument.wordprocessingml.document" &&
+        file.type !== "text/plain",
     ),
+  }
+
+  // Initialize PDF.js
+  useEffect(() => {
+    const loadPDFJS = async () => {
+      if (!window.pdfjsLib) {
+        const script = document.createElement("script")
+        script.src = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"
+        script.onload = () => {
+          window.pdfjsLib.GlobalWorkerOptions.workerSrc =
+            "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js"
+        }
+        document.head.appendChild(script)
+      }
+    }
+    loadPDFJS()
+  }, [])
+
+  // Improved Word document to PDF conversion
+  const convertWordToPDF = async (file) => {
+    try {
+      console.log("Converting Word document to PDF:", file.name)
+
+      // For DOCX files, use mammoth to extract content and preserve formatting
+      if (file.name.toLowerCase().endsWith(".docx")) {
+        const mammoth = await import("mammoth")
+        const arrayBuffer = await file.arrayBuffer()
+
+        // Extract HTML to preserve formatting better
+        const result = await mammoth.convertToHtml({ arrayBuffer })
+        const htmlContent = result.value
+
+        // Create PDF using jsPDF with better formatting
+        const { jsPDF } = await import("jspdf")
+        const pdf = new jsPDF({
+          orientation: "portrait",
+          unit: "mm",
+          format: "a4",
+        })
+
+        // Create a temporary div to render HTML content
+        const tempDiv = document.createElement("div")
+        tempDiv.innerHTML = htmlContent
+        tempDiv.style.width = "190mm" // A4 width minus margins
+        tempDiv.style.fontFamily = "Arial, sans-serif"
+        tempDiv.style.fontSize = "12pt"
+        tempDiv.style.lineHeight = "1.4"
+        tempDiv.style.padding = "10mm"
+        tempDiv.style.position = "absolute"
+        tempDiv.style.left = "-9999px"
+        document.body.appendChild(tempDiv)
+
+        // Use html2canvas to convert HTML to image, then to PDF
+        const html2canvas = await import("html2canvas")
+        const canvas = await html2canvas.default(tempDiv, {
+          scale: 2,
+          useCORS: true,
+          allowTaint: true,
+          backgroundColor: "#ffffff",
+        })
+
+        document.body.removeChild(tempDiv)
+
+        // Calculate dimensions to fit A4
+        const imgWidth = 190 // A4 width minus margins
+        const imgHeight = (canvas.height * imgWidth) / canvas.width
+
+        // Add image to PDF - single page only
+        pdf.addImage(canvas.toDataURL("image/png"), "PNG", 10, 10, imgWidth, Math.min(imgHeight, 277))
+
+        const pdfBlob = pdf.output("blob")
+        const convertedFile = new File([pdfBlob], file.name.replace(/\.(docx?|DOCX?)$/, ".pdf"), {
+          type: "application/pdf",
+        })
+
+        setConvertedDocs((prev) => new Map(prev.set(file.name, convertedFile)))
+        return convertedFile
+      }
+
+      // For DOC files, create a simple single-page PDF
+      const { jsPDF } = await import("jspdf")
+      const pdf = new jsPDF({
+        orientation: "portrait",
+        unit: "mm",
+        format: "a4",
+      })
+
+      // Add basic document info on single page
+      pdf.setFontSize(14)
+      pdf.text(`Document: ${file.name}`, 20, 30)
+      pdf.setFontSize(12)
+      pdf.text(`Size: ${(file.size / 1024).toFixed(1)} KB`, 20, 45)
+      pdf.text(`Type: ${file.type}`, 20, 60)
+      pdf.text("Content converted to PDF for printing", 20, 80)
+
+      const pdfBlob = pdf.output("blob")
+      const convertedFile = new File([pdfBlob], file.name.replace(/\.(docx?|DOCX?)$/, ".pdf"), {
+        type: "application/pdf",
+      })
+
+      setConvertedDocs((prev) => new Map(prev.set(file.name, convertedFile)))
+      return convertedFile
+    } catch (error) {
+      console.error("Word to PDF conversion failed:", error)
+      return file
+    }
   }
 
   // Function to get accurate PDF page count using PDF.js
   const getPDFPageCount = async (file) => {
     return new Promise((resolve) => {
-      console.log("Starting PDF page count for:", file.name)
-
       const reader = new FileReader()
       reader.onload = async function () {
         try {
-          // Ensure PDF.js is loaded
           if (!window.pdfjsLib) {
-            console.log("Loading PDF.js...")
-            const script = document.createElement("script")
-            script.src = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"
-            script.onload = async () => {
-              console.log("PDF.js loaded successfully")
-              try {
-                // Set worker source
-                window.pdfjsLib.GlobalWorkerOptions.workerSrc =
-                  "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js"
-
-                const pdf = await window.pdfjsLib.getDocument({ data: this.result }).promise
-                console.log("PDF loaded, page count:", pdf.numPages)
-                resolve(pdf.numPages)
-              } catch (error) {
-                console.error("Error loading PDF after script load:", error)
-                resolve(1)
-              }
-            }
-            script.onerror = () => {
-              console.error("Failed to load PDF.js")
-              resolve(1)
-            }
-            document.head.appendChild(script)
-          } else {
-            // PDF.js is already loaded
-            console.log("PDF.js already loaded")
-            try {
-              // Set worker source if not set
-              if (!window.pdfjsLib.GlobalWorkerOptions.workerSrc) {
-                window.pdfjsLib.GlobalWorkerOptions.workerSrc =
-                  "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js"
-              }
-
-              const pdf = await window.pdfjsLib.getDocument({ data: this.result }).promise
-              console.log("PDF loaded, page count:", pdf.numPages)
-              resolve(pdf.numPages)
-            } catch (error) {
-              console.error("Error loading PDF:", error)
-              resolve(1)
-            }
+            resolve(1)
+            return
           }
+
+          const pdf = await window.pdfjsLib.getDocument({ data: this.result }).promise
+          resolve(pdf.numPages)
         } catch (error) {
-          console.error("Error in PDF processing:", error)
+          console.error("Error loading PDF:", error)
           resolve(1)
         }
       }
-      reader.onerror = (error) => {
-        console.error("FileReader error:", error)
-        resolve(1)
-      }
+      reader.onerror = () => resolve(1)
       reader.readAsArrayBuffer(file)
     })
   }
 
-  // Function to get Word document page count
-  const getWordDocPageCount = async (file) => {
-    return new Promise((resolve) => {
-      console.log("Analyzing Word document:", file.name, "Size:", (file.size / 1024).toFixed(1), "KB")
+  // Load PDF for preview and render all pages
+  const loadPDFPreview = async (file) => {
+    try {
+      if (!window.pdfjsLib) {
+        console.log("PDF.js not available")
+        return
+      }
 
       const reader = new FileReader()
-      reader.onload = function () {
+      reader.onload = async function () {
         try {
-          const arrayBuffer = this.result
-          const fileName = file.name.toLowerCase()
+          const pdf = await window.pdfjsLib.getDocument({ data: this.result }).promise
+          setPdfDoc(pdf)
+          setCurrentPdfPage(1)
 
-          if (fileName.endsWith(".docx")) {
-            try {
-              const uint8Array = new Uint8Array(arrayBuffer)
-              const textDecoder = new TextDecoder("utf-8", { fatal: false })
-              const content = textDecoder.decode(uint8Array)
+          // Render all pages
+          const pages = []
+          for (let i = 1; i <= pdf.numPages; i++) {
+            const page = await pdf.getPage(i)
+            const scale = 1.5
+            const viewport = page.getViewport({ scale })
 
-              // Look for explicit page breaks
-              const pageBreakPatterns = [
-                /<w:br[^>]*w:type="page"[^>]*\/>/g,
-                /<w:lastRenderedPageBreak\/>/g,
-                /<w:pageBreakBefore\/>/g,
-                /<w:sectPr>/g,
-              ]
+            const canvas = document.createElement("canvas")
+            const context = canvas.getContext("2d")
+            canvas.height = viewport.height
+            canvas.width = viewport.width
 
-              let explicitPageBreaks = 0
-              pageBreakPatterns.forEach((pattern) => {
-                const matches = content.match(pattern)
-                if (matches) explicitPageBreaks += matches.length
-              })
-
-              const paragraphs = (content.match(/<w:p[^>]*>/g) || []).length
-              const textRuns = (content.match(/<w:t[^>]*>.*?<\/w:t>/g) || []).length
-              const tables = (content.match(/<w:tbl>/g) || []).length
-              const images = (content.match(/<w:drawing>/g) || []).length
-
-              const fileSizeKB = file.size / 1024
-              let estimatedPages = 1
-
-              if (explicitPageBreaks > 0) {
-                estimatedPages = explicitPageBreaks + 1
-              } else {
-                if (fileSizeKB < 25) {
-                  estimatedPages = 1
-                } else if (fileSizeKB < 50) {
-                  estimatedPages = Math.max(1, Math.ceil(paragraphs / 20))
-                } else if (fileSizeKB < 100) {
-                  const contentScore = paragraphs * 0.8 + tables * 5 + images * 3
-                  estimatedPages = Math.max(1, Math.ceil(contentScore / 25))
-                } else if (fileSizeKB < 300) {
-                  const contentScore = paragraphs * 0.6 + tables * 4 + images * 2
-                  estimatedPages = Math.max(2, Math.ceil(contentScore / 20))
-                } else if (fileSizeKB < 500) {
-                  estimatedPages = Math.max(3, Math.ceil(fileSizeKB / 40))
-                } else {
-                  estimatedPages = Math.max(5, Math.ceil(fileSizeKB / 50))
-                }
-
-                if (textRuns > 0 && paragraphs > 0) {
-                  const textDensity = textRuns / paragraphs
-                  if (textDensity > 4) {
-                    estimatedPages = Math.ceil(estimatedPages * 1.3)
-                  } else if (textDensity < 1.5) {
-                    estimatedPages = Math.ceil(estimatedPages * 0.7)
-                  }
-                }
-              }
-
-              estimatedPages = Math.min(Math.max(estimatedPages, 1), 100)
-              resolve(estimatedPages)
-            } catch (error) {
-              console.error("Error parsing DOCX:", error)
-              const fileSizeKB = file.size / 1024
-              const fallbackPages = Math.max(1, Math.min(Math.ceil(fileSizeKB / 25), 20))
-              resolve(fallbackPages)
-            }
-          } else if (fileName.endsWith(".doc")) {
-            const fileSizeKB = file.size / 1024
-            let estimatedPages
-
-            if (fileSizeKB < 30) {
-              estimatedPages = 1
-            } else if (fileSizeKB < 60) {
-              estimatedPages = 2
-            } else if (fileSizeKB < 120) {
-              estimatedPages = Math.ceil(fileSizeKB / 35)
-            } else if (fileSizeKB < 300) {
-              estimatedPages = Math.ceil(fileSizeKB / 45)
-            } else if (fileSizeKB < 600) {
-              estimatedPages = Math.ceil(fileSizeKB / 55)
-            } else {
-              estimatedPages = Math.ceil(fileSizeKB / 70)
+            const renderContext = {
+              canvasContext: context,
+              viewport: viewport,
             }
 
-            try {
-              const uint8Array = new Uint8Array(arrayBuffer)
-              let pageBreakIndicators = 0
-
-              for (let i = 0; i < uint8Array.length - 8; i++) {
-                if (uint8Array[i] === 0x0c) pageBreakIndicators++
-
-                if (
-                  uint8Array[i] === 0x01 &&
-                  uint8Array[i + 1] === 0x00 &&
-                  uint8Array[i + 2] === 0x00 &&
-                  uint8Array[i + 3] === 0x00
-                ) {
-                  pageBreakIndicators++
-                }
-              }
-
-              if (pageBreakIndicators > 0) {
-                const binaryEstimate = Math.min(pageBreakIndicators + 1, estimatedPages * 1.5)
-                estimatedPages = Math.max(estimatedPages, Math.ceil(binaryEstimate))
-              }
-            } catch (error) {
-              console.log("Binary analysis failed for DOC file")
-            }
-
-            estimatedPages = Math.min(Math.max(estimatedPages, 1), 100)
-            resolve(estimatedPages)
-          } else {
-            const fileSizeKB = file.size / 1024
-            const estimatedPages = Math.max(1, Math.min(Math.ceil(fileSizeKB / 40), 50))
-            resolve(estimatedPages)
+            await page.render(renderContext).promise
+            pages.push(canvas)
           }
+
+          setAllPdfPages(pages)
+          setPdfCanvas(pages[0])
         } catch (error) {
-          console.error("Error analyzing document:", error)
-          const fileSizeKB = file.size / 1024
-          const fallbackPages = Math.max(1, Math.min(Math.ceil(fileSizeKB / 40), 20))
-          resolve(fallbackPages)
+          console.error("Error loading PDF for preview:", error)
         }
       }
-
-      reader.onerror = (error) => {
-        console.error("FileReader error:", error)
-        const fileSizeKB = file.size / 1024
-        const fallbackPages = Math.max(1, Math.min(Math.ceil(fileSizeKB / 40), 10))
-        resolve(fallbackPages)
-      }
-
       reader.readAsArrayBuffer(file)
-    })
+    } catch (error) {
+      console.error("Error in loadPDFPreview:", error)
+    }
+  }
+
+  // Handle PDF page navigation
+  const goToPDFPage = (direction) => {
+    if (!pdfDoc) return
+
+    let newPage = currentPdfPage
+    if (direction === "prev" && currentPdfPage > 1) {
+      newPage = currentPdfPage - 1
+    } else if (direction === "next" && currentPdfPage < pdfDoc.numPages) {
+      newPage = currentPdfPage + 1
+    }
+
+    if (newPage !== currentPdfPage) {
+      setCurrentPdfPage(newPage)
+      setPdfCanvas(allPdfPages[newPage - 1])
+    }
   }
 
   // Handle adding a new page
@@ -664,28 +661,18 @@ function FilesPage() {
       },
     })
 
+    // Load PDF preview
+    if (file.type === "application/pdf") {
+      loadPDFPreview(file)
+    }
+
     let pageCount = 1
 
     try {
       if (file.type === "application/pdf") {
-        console.log("Counting PDF pages for:", file.name)
         pageCount = await getPDFPageCount(file)
-        console.log("PDF page count:", pageCount)
-      } else if (
-        file.type === "application/msword" ||
-        file.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-      ) {
-        console.log("Counting Word document pages for:", file.name)
-        pageCount = await getWordDocPageCount(file)
-        console.log("Word document page count:", pageCount)
       } else {
-        const fileSizeKB = file.size / 1024
-        if (fileSizeKB > 100) {
-          pageCount = Math.max(1, Math.ceil(fileSizeKB / 100))
-        } else {
-          pageCount = 1
-        }
-        console.log("Estimated page count for", file.name, ":", pageCount)
+        pageCount = 1
       }
     } catch (error) {
       console.error("Error counting pages:", error)
@@ -745,6 +732,9 @@ function FilesPage() {
         doubleSided: fileOptions.printSettings.doubleSided,
         colorMode: fileOptions.printSettings.colorMode,
         cost: itemCost,
+        pageRange: fileOptions.printSettings.pageRange,
+        startPage: fileOptions.printSettings.startPage,
+        endPage: fileOptions.printSettings.endPage,
       },
     ])
 
@@ -836,31 +826,11 @@ function FilesPage() {
     }
   }, [])
 
-  // Word to PDF conversion function
-  const convertWordToPDF = async (file) => {
-    try {
-      if (file.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
-        console.log("Converting Word document to PDF...")
-        // For now, just return the original file as we'll handle conversion in the backend
-        return new File([file], file.name.replace(/\.(docx?|DOCX?)$/, ".pdf"), { type: "application/pdf" })
-      }
-      return file
-    } catch (error) {
-      console.error("Word to PDF conversion failed:", error)
-      return file
-    }
-  }
-
-  // Update the document file handling to convert Word docs
+  // Handle document click with conversion
   const handleDocumentClick = async (file) => {
-    let processedFile = file
-
-    if (file.type.includes("word") || file.name.toLowerCase().includes(".doc")) {
-      console.log("Converting Word document to PDF...")
-      processedFile = await convertWordToPDF(file)
-    }
-
-    showFileOptions(processedFile)
+    console.log("Converting Word document:", file.name)
+    const convertedFile = await convertWordToPDF(file)
+    showFileOptions(convertedFile)
   }
 
   return (
@@ -942,7 +912,7 @@ function FilesPage() {
                     <div className="file-info">
                       <div className="file-name">
                         {file.name.length > 15 ? `${file.name.substring(0, 15)}...` : file.name}
-                        {file.type.includes("word") && <span className="conversion-badge">→PDF</span>}
+                        <span className="conversion-badge">→PDF</span>
                       </div>
                       <div className="file-size">{(file.size / 1024).toFixed(1)} KB</div>
                     </div>
@@ -1134,7 +1104,7 @@ function FilesPage() {
             ) : (
               <div className="no-pages-message">
                 <div className="no-pages-content">
-                  <FileBlank size={48} />
+                  <FileIcon size={48} />
                   <h3>No Canvas Pages</h3>
                   <p>Add a canvas page to start designing</p>
                   <button className="toolbar-button" onClick={addNewPage}>
@@ -1331,49 +1301,51 @@ function FilesPage() {
                     </div>
 
                     {fileOptions.printSettings.pageRange === "custom" && (
-                      <div className="page-range-inputs">
-                        <div className="range-input-group">
-                          <label>From Page:</label>
-                          <input
-                            type="number"
-                            min="1"
-                            max={fileOptions.pageCount}
-                            value={fileOptions.printSettings.startPage}
-                            onChange={(e) => {
-                              const value = Math.max(
-                                1,
-                                Math.min(Number.parseInt(e.target.value) || 1, fileOptions.pageCount),
-                              )
-                              setFileOptions({
-                                ...fileOptions,
-                                printSettings: { ...fileOptions.printSettings, startPage: value },
-                              })
-                            }}
-                            placeholder="1"
-                          />
-                        </div>
-                        <div className="range-input-group">
-                          <label>To Page:</label>
-                          <input
-                            type="number"
-                            min={fileOptions.printSettings.startPage}
-                            max={fileOptions.pageCount}
-                            value={fileOptions.printSettings.endPage}
-                            onChange={(e) => {
-                              const value = Math.max(
-                                fileOptions.printSettings.startPage,
-                                Math.min(
-                                  Number.parseInt(e.target.value) || fileOptions.printSettings.startPage,
-                                  fileOptions.pageCount,
-                                ),
-                              )
-                              setFileOptions({
-                                ...fileOptions,
-                                printSettings: { ...fileOptions.printSettings, endPage: value },
-                              })
-                            }}
-                            placeholder={fileOptions.pageCount.toString()}
-                          />
+                      <div className="custom-range-inputs">
+                        <div className="range-input-row">
+                          <div className="range-input-group">
+                            <label>From:</label>
+                            <input
+                              type="number"
+                              min="1"
+                              max={fileOptions.pageCount}
+                              value={fileOptions.printSettings.startPage}
+                              onChange={(e) => {
+                                const value = Math.max(
+                                  1,
+                                  Math.min(Number.parseInt(e.target.value) || 1, fileOptions.pageCount),
+                                )
+                                setFileOptions({
+                                  ...fileOptions,
+                                  printSettings: { ...fileOptions.printSettings, startPage: value },
+                                })
+                              }}
+                              className="number-input-only"
+                            />
+                          </div>
+                          <div className="range-input-group">
+                            <label>To:</label>
+                            <input
+                              type="number"
+                              min={fileOptions.printSettings.startPage}
+                              max={fileOptions.pageCount}
+                              value={fileOptions.printSettings.endPage}
+                              onChange={(e) => {
+                                const value = Math.max(
+                                  fileOptions.printSettings.startPage,
+                                  Math.min(
+                                    Number.parseInt(e.target.value) || fileOptions.printSettings.startPage,
+                                    fileOptions.pageCount,
+                                  ),
+                                )
+                                setFileOptions({
+                                  ...fileOptions,
+                                  printSettings: { ...fileOptions.printSettings, endPage: value },
+                                })
+                              }}
+                              className="number-input-only"
+                            />
+                          </div>
                         </div>
                       </div>
                     )}
@@ -1437,14 +1409,55 @@ function FilesPage() {
             </div>
 
             <div className="modal-right">
-              <div className="pdf-viewer">
-                <h3>Document Preview</h3>
-                <div className="pdf-viewer-container">
-                  <div className="pdf-placeholder">
-                    <p>PDF preview will be available here</p>
-                    <p>File: {fileOptions.file?.name}</p>
-                    <p>Pages: {fileOptions.pageCount}</p>
-                  </div>
+              <div className="pdf-viewer-full">
+                <div className="pdf-viewer-header">
+                  <h3>Document Preview</h3>
+                  {fileOptions.file?.type === "application/pdf" && pdfDoc && (
+                    <div className="pdf-controls-header">
+                      <button onClick={() => goToPDFPage("prev")} disabled={currentPdfPage <= 1}>
+                        <ChevronLeft size={16} />
+                      </button>
+                      <span>
+                        Page {currentPdfPage} of {pdfDoc?.numPages || 1}
+                      </span>
+                      <button onClick={() => goToPDFPage("next")} disabled={currentPdfPage >= (pdfDoc?.numPages || 1)}>
+                        <ChevronRight size={16} />
+                      </button>
+                    </div>
+                  )}
+                </div>
+                <div className="pdf-viewer-container-full">
+                  {fileOptions.file?.type === "application/pdf" && allPdfPages.length > 0 ? (
+                    <div className="pdf-pages-scroll">
+                      {allPdfPages.map((canvas, index) => (
+                        <div key={index} className="pdf-page-full">
+                          <div className="pdf-page-number-full">Page {index + 1}</div>
+                          <canvas
+                            ref={(canvasElement) => {
+                              if (canvasElement && canvas) {
+                                const ctx = canvasElement.getContext("2d")
+                                canvasElement.width = canvas.width
+                                canvasElement.height = canvas.height
+                                ctx.drawImage(canvas, 0, 0)
+                              }
+                            }}
+                            className="pdf-canvas-full"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="pdf-placeholder">
+                      <FileText size={48} />
+                      <p>Document Preview</p>
+                      <p>File: {fileOptions.file?.name}</p>
+                      <p>Pages: {fileOptions.pageCount}</p>
+                      <p>Size: {fileOptions.file ? (fileOptions.file.size / 1024).toFixed(1) : 0} KB</p>
+                      {fileOptions.file?.name.includes("→PDF") && (
+                        <p style={{ color: "#007aff", fontWeight: "bold" }}>Converted from Word document</p>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

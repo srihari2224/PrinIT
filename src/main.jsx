@@ -1,6 +1,7 @@
 import React from "react"
 import ReactDOM from "react-dom/client"
-import { BrowserRouter, Routes, Route } from "react-router-dom"
+// 1️⃣ Remove BrowserRouter import:
+import { HashRouter as Router, Routes, Route } from "react-router-dom"
 import StartPage from "./pages/StartPage.jsx"
 import App from "./App.jsx"
 import FilesPage from "./pages/FilesPage.jsx"
@@ -11,7 +12,8 @@ import "./index.css"
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
-    <BrowserRouter>
+    {/* 2️⃣ Use HashRouter here */}
+    <Router>
       <Routes>
         {/* Route for the start page */}
         <Route path="/" element={<StartPage />} />
@@ -26,6 +28,6 @@ ReactDOM.createRoot(document.getElementById("root")).render(
         {/* Route for the blank papers page */}
         <Route path="/blank-papers" element={<BlankPaper />} />
       </Routes>
-    </BrowserRouter>
-  </React.StrictMode>,
+    </Router>
+  </React.StrictMode>
 )
