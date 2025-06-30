@@ -2,18 +2,19 @@
 
 import { useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { ArrowLeft, CreditCard, Plus, Minus, ShoppingCart } from "lucide-react"
+import { ArrowLeft, CreditCard } from "lucide-react"
 import "./BlankPaper.css"
 
 function BlankPaper() {
   const navigate = useNavigate()
-  const [cart, setCart] = useState([])
+  const [selectedDesign, setSelectedDesign] = useState(null)
+  const [quantity, setQuantity] = useState(1)
 
   const designs = [
     {
       id: 1,
       name: "Margin Design",
-      description: "Left and top margins only",
+      description: "Left, right, top margins with page number in bottom right",
       price: 1.25,
       bothSides: true,
     },
@@ -27,7 +28,7 @@ function BlankPaper() {
     {
       id: 3,
       name: "Ruled Lines",
-      description: "Complete ruled lines on A4 sheet with left margin",
+      description: "Complete ruled lines on A4 sheet",
       price: 3.0,
       bothSides: true,
     },
@@ -40,75 +41,47 @@ function BlankPaper() {
     },
   ]
 
-  const addToCart = (design, quantity = 1) => {
-    const existingItem = cart.find((item) => item.design.id === design.id)
-
-    if (existingItem) {
-      setCart(
-        cart.map((item) => (item.design.id === design.id ? { ...item, quantity: item.quantity + quantity } : item)),
-      )
-    } else {
-      setCart([...cart, { design, quantity }])
-    }
-  }
-
-  const updateCartQuantity = (designId, newQuantity) => {
-    if (newQuantity <= 0) {
-      setCart(cart.filter((item) => item.design.id !== designId))
-    } else {
-      setCart(cart.map((item) => (item.design.id === designId ? { ...item, quantity: newQuantity } : item)))
-    }
-  }
-
   const calculateTotal = () => {
-    return cart.reduce((total, item) => total + item.design.price * item.quantity, 0).toFixed(2)
-  }
-
-  const getTotalSheets = () => {
-    return cart.reduce((total, item) => total + item.quantity, 0)
+    if (!selectedDesign) return 0
+    return (selectedDesign.price * quantity).toFixed(2)
   }
 
   const handlePayment = () => {
-    if (cart.length === 0) {
-      alert("Please add items to cart first")
+    if (!selectedDesign) {
+      alert("Please select a design first")
       return
     }
 
-    // Initialize Razorpay
-    const script = document.createElement("script")
-    script.src = "https://checkout.razorpay.com/v1/checkout.js"
-    script.onload = () => {
-      const options = {
-        key: "rzp_test_X5OHvkg69oonK2",
-        amount: Math.round(calculateTotal() * 100),
-        currency: "INR",
-        name: "PrinIT Service",
-        description: `Blank Sheets - ${getTotalSheets()} sheets`,
-        handler: (response) => {
-          console.log("Payment successful:", response)
-          handleDirectPrint()
-        },
-        prefill: {
-          name: "Customer Name",
-          email: "customer@example.com",
-          contact: "",
-        },
-        theme: {
-          color: "#000000",
-        },
-      }
-
-      const razorpay = new window.Razorpay(options)
-      razorpay.open()
+    const options = {
+      key: "rzp_test_X5OHvkg69oonK2",
+      amount: Math.round(calculateTotal() * 100),
+      currency: "INR",
+      name: "PrinIT Service",
+      description: `${selectedDesign.name} - ${quantity} sheets`,
+      handler: (response) => {
+        console.log("Payment successful:", response)
+        handleDirectPrint()
+      },
+      prefill: {
+        name: "Customer Name",
+        email: "customer@example.com",
+        contact: "",
+      },
+      theme: {
+        color: "#000000",
+      },
     }
-    document.head.appendChild(script)
+
+    const razorpay = new window.Razorpay(options)
+    razorpay.open()
   }
 
   const handleDirectPrint = async () => {
     try {
+      // Generate print content based on selected design
       const printContent = generateDesignPrintContent()
 
-      // Silent printing without dialog
+      // Silent print
       const printWindow = window.open("", "_blank", "width=1,height=1,left=-1000,top=-1000")
       printWindow.document.write(printContent)
       printWindow.document.close()
@@ -118,8 +91,7 @@ function BlankPaper() {
         printWindow.print()
         setTimeout(() => {
           printWindow.close()
-          alert(`Successfully printed ${getTotalSheets()} blank sheets!`)
-          setCart([])
+          alert(`Successfully printed ${quantity} ${selectedDesign.name} sheets!`)
           navigate("/")
         }, 2000)
       }, 1000)
@@ -137,7 +109,7 @@ function BlankPaper() {
         <title>PrinIT - Blank Design Sheets</title>
         <style>
           @page { 
-            size: A4 portrait; 
+            size: A4; 
             margin: 0; 
           }
           @media print {
@@ -166,18 +138,26 @@ function BlankPaper() {
             page-break-after: avoid;
           }
           
-          /* Design 1: Margin Design - Only left and top margins */
+          /* Design 1: Margin Design */
           .margin-design {
-            border-left: 1px solid #000000;
-            border-top: 1px solid #000000;
-            position: relative;
+            border-left: 2px solid #ff0000;
+            border-right: 2px solid #0000ff;
+            border-top: 2px solid #00ff00;
+            padding: 20mm 15mm 15mm 25mm;
+          }
+          .page-number {
+            position: absolute;
+            bottom: 15mm;
+            right: 15mm;
+            font-size: 12pt;
+            color: #333;
           }
           
           /* Design 2: Graph Sheet */
           .graph-design {
             background-image: 
-              linear-gradient(to right, #ccc 0.5px, transparent 0.5px),
-              linear-gradient(to bottom, #ccc 0.5px, transparent 0.5px);
+              linear-gradient(to right, #ddd 1px, transparent 1px),
+              linear-gradient(to bottom, #ddd 1px, transparent 1px);
             background-size: 5mm 5mm;
             background-position: 0 0, 0 0;
           }
@@ -190,7 +170,7 @@ function BlankPaper() {
               #0066cc 7mm,
               #0066cc 7.5mm
             );
-            position: relative;
+            padding: 20mm 15mm;
           }
           .ruled-design::before {
             content: '';
@@ -198,7 +178,7 @@ function BlankPaper() {
             left: 25mm;
             top: 0;
             bottom: 0;
-            width: 1px;
+            width: 2px;
             background: #ff0000;
           }
           
@@ -211,27 +191,35 @@ function BlankPaper() {
       <body>
     `
 
-    let pageNumber = 1
-    cart.forEach((item) => {
-      for (let i = 1; i <= item.quantity; i++) {
-        // Front side
-        content += `<div class="page ${getDesignClass(item.design.id)}"></div>`
+    // Generate pages based on quantity and design
+    for (let i = 1; i <= quantity; i++) {
+      // Front side
+      content += `<div class="page ${getDesignClass()}">`
 
-        // Back side for designs that support both sides
-        if (item.design.bothSides) {
-          content += `<div class="page ${getDesignClass(item.design.id)}"></div>`
+      if (selectedDesign.id === 1) {
+        content += `<div class="page-number">Page ${i}</div>`
+      }
+
+      content += `</div>`
+
+      // Back side for designs that support both sides
+      if (selectedDesign.bothSides) {
+        content += `<div class="page ${getDesignClass()}">`
+
+        if (selectedDesign.id === 1) {
+          content += `<div class="page-number">Page ${i} (Back)</div>`
         }
 
-        pageNumber++
+        content += `</div>`
       }
-    })
+    }
 
     content += `</body></html>`
     return content
   }
 
-  const getDesignClass = (designId) => {
-    switch (designId) {
+  const getDesignClass = () => {
+    switch (selectedDesign.id) {
       case 1:
         return "margin-design"
       case 2:
@@ -258,27 +246,31 @@ function BlankPaper() {
       <div className="blank-content">
         <div className="designs-grid">
           {designs.map((design) => (
-            <div key={design.id} className="design-card">
+            <div
+              key={design.id}
+              className={`design-card ${selectedDesign?.id === design.id ? "selected" : ""}`}
+              onClick={() => setSelectedDesign(design)}
+            >
               <div className="design-preview">
-                <div className="a4-sheet-preview">
+                <div className={`preview-${design.id}`}>
                   {design.id === 1 && (
-                    <div className="margin-sheet">
-                      <div className="left-margin"></div>
-                      <div className="top-margin"></div>
+                    <div className="margin-preview">
+                      <div className="margin-borders"></div>
+                      <div className="page-num">Page 1</div>
                     </div>
                   )}
                   {design.id === 2 && (
-                    <div className="graph-sheet">
-                      <div className="graph-pattern"></div>
+                    <div className="graph-preview">
+                      <div className="graph-grid"></div>
                     </div>
                   )}
                   {design.id === 3 && (
-                    <div className="ruled-sheet">
+                    <div className="ruled-preview">
                       <div className="ruled-lines"></div>
-                      <div className="left-margin-line"></div>
+                      <div className="margin-line"></div>
                     </div>
                   )}
-                  {design.id === 4 && <div className="plain-sheet"></div>}
+                  {design.id === 4 && <div className="plain-preview"></div>}
                 </div>
               </div>
 
@@ -290,78 +282,46 @@ function BlankPaper() {
                   {design.bothSides && <span className="both-sides">(Both sides)</span>}
                 </div>
               </div>
-
-              <div className="add-to-cart-section">
-                <div className="quantity-selector">
-                  <button className="qty-btn" onClick={() => addToCart(design, 1)}>
-                    <Plus size={16} />
-                  </button>
-                  <span className="qty-display">
-                    {cart.find((item) => item.design.id === design.id)?.quantity || 0}
-                  </span>
-                  <button
-                    className="qty-btn"
-                    onClick={() => {
-                      const currentItem = cart.find((item) => item.design.id === design.id)
-                      if (currentItem) {
-                        updateCartQuantity(design.id, currentItem.quantity - 1)
-                      }
-                    }}
-                    disabled={!cart.find((item) => item.design.id === design.id)}
-                  >
-                    <Minus size={16} />
-                  </button>
-                </div>
-              </div>
             </div>
           ))}
         </div>
 
-        {cart.length > 0 && (
-          <div className="cart-section">
-            <div className="cart-header">
-              <ShoppingCart size={20} />
-              <h3>Cart ({getTotalSheets()} sheets)</h3>
+        {selectedDesign && (
+          <div className="order-section">
+            <div className="quantity-control">
+              <label>Quantity:</label>
+              <div className="quantity-buttons">
+                <button onClick={() => setQuantity(Math.max(1, quantity - 1))} disabled={quantity <= 1}>
+                  -
+                </button>
+                <span className="quantity-display">{quantity}</span>
+                <button onClick={() => setQuantity(quantity + 1)}>+</button>
+              </div>
             </div>
 
-            <div className="cart-items">
-              {cart.map((item) => (
-                <div key={item.design.id} className="cart-item">
-                  <div className="cart-item-info">
-                    <span className="item-name">{item.design.name}</span>
-                    <span className="item-details">
-                      {item.quantity} × ₹{item.design.price} = ₹{(item.quantity * item.design.price).toFixed(2)}
-                      {item.design.bothSides && " (Both sides)"}
-                    </span>
-                  </div>
-                  <div className="cart-item-controls">
-                    <button
-                      className="cart-qty-btn"
-                      onClick={() => updateCartQuantity(item.design.id, item.quantity - 1)}
-                    >
-                      <Minus size={14} />
-                    </button>
-                    <span className="cart-qty">{item.quantity}</span>
-                    <button
-                      className="cart-qty-btn"
-                      onClick={() => updateCartQuantity(item.design.id, item.quantity + 1)}
-                    >
-                      <Plus size={14} />
-                    </button>
-                  </div>
+            <div className="order-summary">
+              <div className="summary-item">
+                <span>Design: {selectedDesign.name}</span>
+              </div>
+              <div className="summary-item">
+                <span>Quantity: {quantity} sheets</span>
+              </div>
+              <div className="summary-item">
+                <span>Price per sheet: ₹{selectedDesign.price}</span>
+              </div>
+              {selectedDesign.bothSides && (
+                <div className="summary-item">
+                  <span>Printed on both sides</span>
                 </div>
-              ))}
-            </div>
-
-            <div className="cart-total">
-              <div className="total-line">
+              )}
+              <div className="summary-total">
                 <span>Total: ₹{calculateTotal()}</span>
               </div>
             </div>
 
             <button className="pay-print-button" onClick={handlePayment}>
               <CreditCard size={16} />
-              Pay ₹{calculateTotal()} & Print Directly
+              Pay ₹{calculateTotal()} & Print
             </button>
           </div>
         )}

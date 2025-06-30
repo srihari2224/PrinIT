@@ -35,6 +35,8 @@ function FilesPage() {
   const [draggingItem, setDraggingItem] = useState(null)
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 })
 
+  
+
   // State for image editing
   const [selectedItem, setSelectedItem] = useState(null)
   const [cropMode, setCropMode] = useState(false)
@@ -90,12 +92,10 @@ function FilesPage() {
   const convertWordToPDF = async (file) => {
     try {
       console.log("Converting Word document to PDF:", file.name)
-
       // For DOCX files, use mammoth to extract content and preserve formatting
       if (file.name.toLowerCase().endsWith(".docx")) {
         const mammoth = await import("mammoth")
         const arrayBuffer = await file.arrayBuffer()
-
         // Extract HTML to preserve formatting better
         const result = await mammoth.convertToHtml({ arrayBuffer })
         const htmlContent = result.value
@@ -186,7 +186,6 @@ function FilesPage() {
             resolve(1)
             return
           }
-
           const pdf = await window.pdfjsLib.getDocument({ data: this.result }).promise
           resolve(pdf.numPages)
         } catch (error) {
@@ -299,7 +298,7 @@ function FilesPage() {
   const toggleColorMode = (pageId) => {
     setPages(
       pages.map((page) =>
-        page.id === pageId ? { ...page, colorMode: page.colorMode === "color" ? "bw" : "color" } : page,
+        page.id === pageId ? { ...page, colorMode: page.colorMode === "bw" ? "color" : "bw" } : page,
       ),
     )
   }
@@ -307,21 +306,17 @@ function FilesPage() {
   // Handle deleting a page
   const deletePage = (pageId) => {
     const newPages = pages.filter((page) => page.id !== pageId)
-
     if (newPages.length > 0) {
       newPages.forEach((page, index) => {
         page.id = index + 1
       })
-
       const pageIndex = pages.findIndex((page) => page.id === pageId)
       const newActivePageId =
         pageIndex > 0 ? (pageIndex < newPages.length ? pageIndex : newPages.length) : newPages.length > 0 ? 1 : 1
-
       setActivePage(newActivePageId)
     } else {
       setActivePage(null)
     }
-
     setPages(newPages)
   }
 
@@ -378,7 +373,6 @@ function FilesPage() {
           return page
         }),
       )
-
       setDraggingFile(null)
     } else if (draggingItem) {
       const x = e.clientX - canvasRect.left - dragOffset.x
@@ -400,7 +394,6 @@ function FilesPage() {
           return page
         }),
       )
-
       setDraggingItem(null)
     }
   }
@@ -411,10 +404,8 @@ function FilesPage() {
   const handleResizeStart = (e, itemId, handle) => {
     e.preventDefault()
     e.stopPropagation()
-
     const startX = e.clientX
     const startY = e.clientY
-
     const item = currentPage.items.find((item) => item.id === itemId)
     if (!item) return
 
@@ -624,7 +615,6 @@ function FilesPage() {
         return page
       }),
     )
-
     if (selectedItem && selectedItem.id === itemId) {
       setSelectedItem(null)
     }
@@ -667,7 +657,6 @@ function FilesPage() {
     }
 
     let pageCount = 1
-
     try {
       if (file.type === "application/pdf") {
         pageCount = await getPDFPageCount(file)
@@ -711,7 +700,6 @@ function FilesPage() {
   // Add function to add file to print queue
   const addFileToPrintQueue = () => {
     let pagesToPrint = 0
-
     if (fileOptions.printSettings.pageRange === "all") {
       pagesToPrint = fileOptions.pageCount
     } else {
@@ -747,17 +735,14 @@ function FilesPage() {
   // Function to calculate canvas pages cost
   const calculateCanvasPagesCost = () => {
     let totalCost = 0
-
     if (pages.length === 0) return 0
 
     let pagesToCalculate = []
-
     if (printSettings.pageRange === "all") {
       pagesToCalculate = pages
     } else {
       const startPage = Math.max(1, printSettings.startPage)
       const endPage = Math.min(pages.length, printSettings.endPage)
-
       for (let i = startPage; i <= endPage; i++) {
         const page = pages.find((p) => p.id === i)
         if (page) {
@@ -776,13 +761,10 @@ function FilesPage() {
   // Calculate total cost
   const calculateCost = () => {
     let totalCost = 0
-
     totalCost += calculateCanvasPagesCost()
-
     printQueue.forEach((item) => {
       totalCost += item.cost || 0
     })
-
     return totalCost
   }
 
@@ -963,34 +945,130 @@ function FilesPage() {
 
         <div className="canvas-area">
           <div className="canvas-toolbar">
-            <button className="toolbar-button" onClick={addNewPage}>
-              <Plus size={16} />
-              <span>Add Page</span>
+{/* ----------------------------------------------------------------------------------------- */}
+            
+            <button type="button" class="Add-button" onClick={addNewPage}>
+              <span class="button__text">Add Page</span>
+              <span class="button__icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" viewBox="0 0 24 24" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" stroke="currentColor" height="24" fill="none" class="svg"><line y2="19" y1="5" x2="12" x1="12"></line><line y2="12" y1="12" x2="19" x1="5"></line></svg></span>
             </button>
-            <button className="toolbar-button" onClick={duplicatePage}>
-              <Copy size={16} />
-              <span>Duplicate</span>
+
+            <button class="Duplicate" onClick={duplicatePage}>
+              <span> COPY Page
+              </span>
             </button>
-            <button className="toolbar-button delete-button" onClick={() => deletePage(activePage)}>
-              <Trash size={16} />
-              <span>Delete Page</span>
+
+            <button class="delete-button" onClick={() => deletePage(activePage)}>
+              <span class="delete-button__text">Delete</span>
+              <span class="delete-button__icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+                  <path d="M24 20.188l-8.315-8.209 8.2-8.282-3.697-3.697-8.212 8.318-8.31-8.203-3.666 3.666 8.321 8.24-8.206 8.313 3.666 3.666 8.237-8.318 8.285 8.203z"></path>
+                </svg>
+              </span>
             </button>
+
             <div className="color-toggle">
-              <label className="toggle-label">
+              <label className="switch">
                 <input
+                  id="input"
                   type="checkbox"
-                  checked={currentPage?.colorMode === "color"}
+                  checked={currentPage?.colorMode === "bw"}
                   onChange={() => currentPage && toggleColorMode(activePage)}
                 />
-                <span className="toggle-slider"></span>
-                <span className="toggle-text">{currentPage?.colorMode === "color" ? "Color" : "B&W"}</span>
+                <div className="slider round">
+                  <div className="sun-moon">
+                    <svg id="moon-dot-1" className="moon-dot" viewBox="0 0 100 100">
+                      <circle cx="50" cy="50" r="50"></circle>
+                    </svg>
+                    <svg id="moon-dot-2" className="moon-dot" viewBox="0 0 100 100">
+                      <circle cx="50" cy="50" r="50"></circle>
+                    </svg>
+                    <svg id="moon-dot-3" className="moon-dot" viewBox="0 0 100 100">
+                      <circle cx="50" cy="50" r="50"></circle>
+                    </svg>
+                    <svg id="light-ray-1" className="light-ray" viewBox="0 0 100 100">
+                      <circle cx="50" cy="50" r="50"></circle>
+                    </svg>
+                    <svg id="light-ray-2" className="light-ray" viewBox="0 0 100 100">
+                      <circle cx="50" cy="50" r="50"></circle>
+                    </svg>
+                    <svg id="light-ray-3" className="light-ray" viewBox="0 0 100 100">
+                      <circle cx="50" cy="50" r="50"></circle>
+                    </svg>
+                    <svg id="cloud-1" className="cloud-dark" viewBox="0 0 100 100">
+                      <circle cx="50" cy="50" r="50"></circle>
+                    </svg>
+                    <svg id="cloud-2" className="cloud-dark" viewBox="0 0 100 100">
+                      <circle cx="50" cy="50" r="50"></circle>
+                    </svg>
+                    <svg id="cloud-3" className="cloud-dark" viewBox="0 0 100 100">
+                      <circle cx="50" cy="50" r="50"></circle>
+                    </svg>
+                    <svg id="cloud-4" className="cloud-light" viewBox="0 0 100 100">
+                      <circle cx="50" cy="50" r="50"></circle>
+                    </svg>
+                    <svg id="cloud-5" className="cloud-light" viewBox="0 0 100 100">
+                      <circle cx="50" cy="50" r="50"></circle>
+                    </svg>
+                    <svg id="cloud-6" className="cloud-light" viewBox="0 0 100 100">
+                      <circle cx="50" cy="50" r="50"></circle>
+                    </svg>
+                  </div>
+                  <div className="stars">
+                    <svg id="star-1" className="star" viewBox="0 0 20 20">
+                      <path d="M 0 10 C 10 10,10 10 ,0 10 C 10 10 , 10 10 , 10 20 C 10 10 , 10 10 , 20 10 C 10 10 , 10 10 , 10 0 C 10 10,10 10 ,0 10 Z"></path>
+                    </svg>
+                    <svg id="star-2" className="star" viewBox="0 0 20 20">
+                      <path d="M 0 10 C 10 10,10 10 ,0 10 C 10 10 , 10 10 , 10 20 C 10 10 , 10 10 , 20 10 C 10 10 , 10 10 , 10 0 C 10 10,10 10 ,0 10 Z"></path>
+                    </svg>
+                    <svg id="star-3" className="star" viewBox="0 0 20 20">
+                      <path d="M 0 10 C 10 10,10 10 ,0 10 C 10 10 , 10 10 , 10 20 C 10 10 , 10 10 , 20 10 C 10 10 , 10 10 , 10 0 C 10 10,10 10 ,0 10 Z"></path>
+                    </svg>
+                    <svg id="star-4" className="star" viewBox="0 0 20 20">
+                      <path d="M 0 10 C 10 10,10 10 ,0 10 C 10 10 , 10 10 , 10 20 C 10 10 , 10 10 , 20 10 C 10 10 , 10 10 , 10 0 C 10 10,10 10 ,0 10 Z"></path>
+                    </svg>
+                  </div>
+                </div>
               </label>
+              <span className="toggle-text">{currentPage?.colorMode === "color" ? "Color" : "B&W"}</span>
             </div>
+
+
+            <div class="help-container" onclick="openModal()">
+              <button class="help-button">?</button>
+              <span class="help-text">Get Help</span>
+            </div>
+
+            <div class="modal" id="helpModal">
+              <div class="modal-content">
+                <video controls>
+                  <source src="your-video.mp4" type="video/mp4" />
+                  Your browser does not support video.
+                </video>
+
+                <div class="review-box">
+                  <label for="review">Leave a comment:</label>
+                  <textarea id="review" placeholder="Write something..."></textarea>
+                </div>
+
+                <button class="close-btn" onclick="closeModal()">Close</button>
+              </div>
+            </div>
+
+
+
+
+
+         
+
+        
+
+
           </div>
 
+
+{/* ------------------------------------------------------------------------------- */}
           <div className="canvas-container">
             <div className="canvas-background"></div>
-
             {pages.length > 0 ? (
               <>
                 <div className="page-navigation">
@@ -1079,6 +1157,7 @@ function FilesPage() {
                               <Trash size={16} />
                             </button>
                           </div>
+
                           <div
                             className="resize-handle top-left"
                             onMouseDown={(e) => handleResizeStart(e, item.id, "top-left")}
@@ -1173,7 +1252,6 @@ function FilesPage() {
                             } else {
                               const startPage = Math.max(1, printSettings.startPage)
                               const endPage = Math.min(pages.length, printSettings.endPage)
-
                               for (let i = startPage; i <= endPage; i++) {
                                 const page = pages.find((p) => p.id === i)
                                 if (page) {
@@ -1181,7 +1259,6 @@ function FilesPage() {
                                 }
                               }
                             }
-
                             return pagesToShow.map((page) => (
                               <div key={page.id} className="cost-item">
                                 <span>
@@ -1193,7 +1270,6 @@ function FilesPage() {
                           })()}
                         </div>
                       )}
-
                       {/* Print queue items */}
                       {printQueue.length > 0 && (
                         <div className="cost-section">
@@ -1211,7 +1287,6 @@ function FilesPage() {
                           ))}
                         </div>
                       )}
-
                       <div className="total-cost">
                         <span>Total Cost:</span>
                         <span>₹{calculateCost()}</span>
@@ -1247,8 +1322,39 @@ function FilesPage() {
               })
             }
           >
-            <CreditCard size={16} />
-            <span id="color">Proceed to Payment</span>
+            <span className="btn-text">Pay Now</span>
+            <div className="icon-container">
+              <svg viewBox="0 0 24 24" className="icon card-icon">
+                <path
+                  d="M20,8H4V6H20M20,18H4V12H20M20,4H4C2.89,4 2,4.89 2,6V18C2,19.11 2.89,20 4,20H20C21.11,20 22,19.11 22,18V6C22,4.89 21.11,4 20,4Z"
+                  fill="currentColor"
+                ></path>
+              </svg>
+              <svg viewBox="0 0 24 24" className="icon payment-icon">
+                <path
+                  d="M2,17H22V21H2V17M6.25,7H9V6H6V3H18V6H15V7H17.75L19,17H5L6.25,7M9,10H15V8H9V10M9,13H15V11H9V13Z"
+                  fill="currentColor"
+                ></path>
+              </svg>
+              <svg viewBox="0 0 24 24" className="icon dollar-icon">
+                <path
+                  d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"
+                  fill="currentColor"
+                ></path>
+              </svg>
+              <svg viewBox="0 0 24 24" className="icon wallet-icon default-icon">
+                <path
+                  d="M21,18V19A2,2 0 0,1 19,21H5C3.89,21 3,20.1 3,19V5A2,2 0 0,1 5,3H19A2,2 0 0,1 21,5V6H12C10.89,6 10,6.9 10,8V16A2,2 0 0,0 12,18M12,16H22V8H12M16,13.5A1.5,1.5 0 0,1 14.5,12A1.5,1.5 0 0,1 16,10.5A1.5,1.5 0 0,1 17.5,12A1.5,1.5 0 0,1 16,13.5Z"
+                  fill="currentColor"
+                ></path>
+              </svg>
+              <svg viewBox="0 0 24 24" className="icon check-icon">
+                <path
+                  d="M9,16.17L4.83,12L3.41,13.41L9,19L21,7L19.59,5.59L9,16.17Z"
+                  fill="currentColor"
+                ></path>
+              </svg>
+            </div>
           </button>
         </div>
       </div>
@@ -1258,7 +1364,6 @@ function FilesPage() {
           <div className="print-modal-content-large">
             <div className="modal-left">
               <h2>Print Options: {fileOptions.file.name}</h2>
-
               {fileOptions.pageCount === 0 ? (
                 <div style={{ textAlign: "center", padding: "20px" }}>
                   <p>Analyzing document...</p>
@@ -1299,7 +1404,6 @@ function FilesPage() {
                         Custom Range
                       </label>
                     </div>
-
                     {fileOptions.printSettings.pageRange === "custom" && (
                       <div className="custom-range-inputs">
                         <div className="range-input-row">
@@ -1353,7 +1457,7 @@ function FilesPage() {
 
                   <div className="option-group">
                     <h3>Print Options</h3>
-                    <label className="checkbox-label">
+                    <label className="container">
                       <input
                         type="checkbox"
                         checked={fileOptions.printSettings.doubleSided}
@@ -1367,45 +1471,104 @@ function FilesPage() {
                           })
                         }
                       />
-                      Double-sided printing
+                      <div className="checkmark"></div>
+                      <span style={{ marginLeft: "4px" }}>Double-sided printing</span>
                     </label>
 
+                    
                     <div className="color-toggle mt-3">
-                      <label className="toggle-label">
+                      <label className="switch">
                         <input
+                          id="input-modal"
                           type="checkbox"
-                          checked={fileOptions.printSettings.colorMode === "color"}
+                          checked={fileOptions.printSettings.colorMode === "bw"}
                           onChange={() =>
                             setFileOptions({
                               ...fileOptions,
                               printSettings: {
                                 ...fileOptions.printSettings,
-                                colorMode: fileOptions.printSettings.colorMode === "color" ? "bw" : "color",
+                                colorMode: fileOptions.printSettings.colorMode === "bw" ? "color" : "bw",
                               },
                             })
                           }
                         />
-                        <span className="toggle-slider"></span>
-                        <span className="toggle-text">
-                          {fileOptions.printSettings.colorMode === "color" ? "Color" : "B&W"}
-                        </span>
+                        <div className="slider round">
+                          <div className="sun-moon">
+                            <svg id="moon-dot-1-modal" className="moon-dot" viewBox="0 0 100 100">
+                              <circle cx="50" cy="50" r="50"></circle>
+                            </svg>
+                            <svg id="moon-dot-2-modal" className="moon-dot" viewBox="0 0 100 100">
+                              <circle cx="50" cy="50" r="50"></circle>
+                            </svg>
+                            <svg id="moon-dot-3-modal" className="moon-dot" viewBox="0 0 100 100">
+                              <circle cx="50" cy="50" r="50"></circle>
+                            </svg>
+                            <svg id="light-ray-1-modal" className="light-ray" viewBox="0 0 100 100">
+                              <circle cx="50" cy="50" r="50"></circle>
+                            </svg>
+                            <svg id="light-ray-2-modal" className="light-ray" viewBox="0 0 100 100">
+                              <circle cx="50" cy="50" r="50"></circle>
+                            </svg>
+                            <svg id="light-ray-3-modal" className="light-ray" viewBox="0 0 100 100">
+                              <circle cx="50" cy="50" r="50"></circle>
+                            </svg>
+                            <svg id="cloud-1-modal" className="cloud-dark" viewBox="0 0 100 100">
+                              <circle cx="50" cy="50" r="50"></circle>
+                            </svg>
+                            <svg id="cloud-2-modal" className="cloud-dark" viewBox="0 0 100 100">
+                              <circle cx="50" cy="50" r="50"></circle>
+                            </svg>
+                            <svg id="cloud-3-modal" className="cloud-dark" viewBox="0 0 100 100">
+                              <circle cx="50" cy="50" r="50"></circle>
+                            </svg>
+                            <svg id="cloud-4-modal" className="cloud-light" viewBox="0 0 100 100">
+                              <circle cx="50" cy="50" r="50"></circle>
+                            </svg>
+                            <svg id="cloud-5-modal" className="cloud-light" viewBox="0 0 100 100">
+                              <circle cx="50" cy="50" r="50"></circle>
+                            </svg>
+                            <svg id="cloud-6-modal" className="cloud-light" viewBox="0 0 100 100">
+                              <circle cx="50" cy="50" r="50"></circle>
+                            </svg>
+                          </div>
+                          <div className="stars">
+                            <svg id="star-1-modal" className="star" viewBox="0 0 20 20">
+                              <path d="M 0 10 C 10 10,10 10 ,0 10 C 10 10 , 10 10 , 10 20 C 10 10 , 10 10 , 20 10 C 10 10 , 10 10 , 10 0 C 10 10,10 10 ,0 10 Z"></path>
+                            </svg>
+                            <svg id="star-2-modal" className="star" viewBox="0 0 20 20">
+                              <path d="M 0 10 C 10 10,10 10 ,0 10 C 10 10 , 10 10 , 10 20 C 10 10 , 10 10 , 20 10 C 10 10 , 10 10 , 10 0 C 10 10,10 10 ,0 10 Z"></path>
+                            </svg>
+                            <svg id="star-3-modal" className="star" viewBox="0 0 20 20">
+                              <path d="M 0 10 C 10 10,10 10 ,0 10 C 10 10 , 10 10 , 10 20 C 10 10 , 10 10 , 20 10 C 10 10 , 10 10 , 10 0 C 10 10,10 10 ,0 10 Z"></path>
+                            </svg>
+                            <svg id="star-4-modal" className="star" viewBox="0 0 20 20">
+                              <path d="M 0 10 C 10 10,10 10 ,0 10 C 10 10 , 10 10 , 10 20 C 10 10 , 10 10 , 20 10 C 10 10 , 10 10 , 10 0 C 10 10,10 10 ,0 10 Z"></path>
+                            </svg>
+                          </div>
+                        </div>
                       </label>
+                      <span className="toggle-text">
+                        {fileOptions.printSettings.colorMode === "bw" ? "B&W" : "Color"}
+                      </span>
                     </div>
                   </div>
                 </div>
               )}
 
               <div className="modal-actions">
+
+
                 <button className="cancel-button" onClick={() => setFileOptions({ ...fileOptions, showModal: false })}>
                   Cancel
                 </button>
                 {fileOptions.pageCount > 0 && (
-                  <button className="payment-button" onClick={addFileToPrintQueue}>
-                    <Printer size={16} />
-                    <span>Add to Print Queue</span>
+                  <button class="queue-button" onClick={addFileToPrintQueue} >
+                    ADD to QUEUE
                   </button>
                 )}
               </div>
+
+
             </div>
 
             <div className="modal-right">
@@ -1426,6 +1589,7 @@ function FilesPage() {
                     </div>
                   )}
                 </div>
+
                 <div className="pdf-viewer-container-full">
                   {fileOptions.file?.type === "application/pdf" && allPdfPages.length > 0 ? (
                     <div className="pdf-pages-scroll">

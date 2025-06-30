@@ -3,6 +3,9 @@
 import { useNavigate } from "react-router-dom"
 import "./App.css"
 
+// Import images
+import iphoneImage from "./assets/images/iphonee.jpg"
+
 function App() {
   const navigate = useNavigate() // Initialize the navigate function
 
@@ -26,7 +29,7 @@ function App() {
             </div>
 
             <div className="image">
-              <img className="qr-image" src="/iphonee.jpg" alt="QR Code" />
+              <img className="qr-image" src={iphoneImage || "/placeholder.svg"} alt="QR Code" />
             </div>
           </div>
 
@@ -49,6 +52,7 @@ function App() {
             />
             <div class="blank-paper">
               <button id="blank" onClick={() => navigate("/blank-papers")}>
+                {" "}
                 Blank Papers
               </button>
             </div>

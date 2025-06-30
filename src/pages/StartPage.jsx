@@ -4,6 +4,14 @@ import { useState } from "react"
 import { useNavigate } from "react-router-dom"
 import "./StartPage.css"
 
+// Import all images
+import verifiedIcon from "../assets/images/verified.png"
+import folderIcon from "../assets/images/folder.png"
+import whatsappIcon from "../assets/images/whatapp.png"
+import kioskIcon from "../assets/images/kiosk.png"
+import printerIcon from "../assets/images/printer.png"
+import razorpayIcon from "../assets/images/razorpay.png"
+
 function StartPage() {
   const navigate = useNavigate()
   const [showPolicyModal, setShowPolicyModal] = useState(false)
@@ -125,141 +133,60 @@ function StartPage() {
 
   return (
     <div className="start-page">
-
-
-
-
-
-
       <div className="start-header">
         <div className="heading-container" onClick={() => navigate("/main")}>
           <h1>KIOSK meets</h1>
           <h1 className="gradient-text">Printing Papers</h1>
         </div>
         <div className="verified-footer">
-          <img src="/verified.png" className="verified-icon" alt="Verified" />
+          <img src={verifiedIcon || "/placeholder.svg"} className="verified-icon" alt="Verified" />
           <span>Verified by NIT C</span>
         </div>
       </div>
 
-
-
-      <div className="subject" >
-
+      <div className="subject">
         <div className="left"></div>
         <div className="right"></div>
-
       </div>
 
       <div className="pathways">
         <h2 className="pathways-title">Get Started with Pathways</h2>
 
         <div className="step">
-          <img src="/whatapp.png" alt="WhatsApp" />
+          <img src={whatsappIcon || "/placeholder.svg"} alt="WhatsApp" />
           <div className="label">WhatsApp</div>
           <div className="hover-box">📱 Step 1: Start chatting via WhatsApp to upload files instantly.</div>
         </div>
 
         <div className="step">
-          <img src="/kiosk.png" alt="Kiosk" />
+          <img src={kioskIcon || "/placeholder.svg"} alt="Kiosk" />
           <div className="label">Kiosk</div>
           <div className="hover-box">🖥️ Step 2: Visit the kiosk system to manage and view uploads.</div>
         </div>
 
         <div className="step">
-          <img src="/folder.png" alt="Folder" />
+          <img src={folderIcon || "/placeholder.svg"} alt="Folder" />
           <div className="label">File Upload</div>
           <div className="hover-box">📂 Step 3: Upload documents like PDFs, images, or Word files.</div>
         </div>
 
         <div className="step">
-          <img src="/razorpay.png" alt="Payment" />
+          <img src={razorpayIcon || "/placeholder.svg"} alt="Payment" />
           <div className="label">Payment</div>
           <div className="hover-box">💳 Step 4: Make a secure payment via Razorpay for your print job.</div>
         </div>
 
         <div className="step">
-          <img src="/printer.png" alt="Printer" />
+          <img src={printerIcon || "/placeholder.svg"} alt="Printer" />
           <div className="label">Print</div>
           <div className="hover-box">🖨️ Step 5: Collect your printed document instantly at the kiosk.</div>
         </div>
       </div>
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
       {/* Main Content */}
       <div className="start-content">
-        <div className="hero-section">
-          {/* <h2 className="hero-title">Fast & Easy Printing</h2>
-          <p className="hero-description">
-            Upload your documents, customize your print settings, and get instant high-quality prints
-          </p> */}
-
-          {/* <button className="start-printing-btn" >
-            Start Printing
-          </button> */}
-        </div>
-
-        {/* <div className="features-grid">
-          <div className="feature-card">
-            <div className="feature-icon">📄</div>
-            <h3>Multiple Formats</h3>
-            <p>Support for PDF, Word, Images and more</p>
-          </div>
-
-          <div className="feature-card">
-            <div className="feature-icon">🎨</div>
-            <h3>Custom Layout</h3>
-            <p>Arrange and edit your documents on A4 canvas</p>
-          </div>
-
-          <div className="feature-card">
-            <div className="feature-icon">💳</div>
-            <h3>Secure Payment</h3>
-            <p>Safe and secure payment with Razorpay</p>
-          </div>
-
-          <div className="feature-card">
-            <div className="feature-icon">⚡</div>
-            <h3>Instant Print</h3>
-            <p>Get your documents printed immediately</p>
-          </div> */}
-        {/* </div> */}
+        <div className="hero-section"></div>
       </div>
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
       <footer className="start-footer">
         <div className="footer-links">
@@ -279,12 +206,6 @@ function StartPage() {
             Privacy Policy
           </button>
         </div>
-
-        {/* <div className="admin-access">
-          <button className="admin-btn" onClick={() => navigate("/admin")}>
-            Admin Access
-          </button>
-        </div> */}
 
         <div className="footer-bottom">
           <p>&copy; 2025 PrinIT. All rights reserved.</p>

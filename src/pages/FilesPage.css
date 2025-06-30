@@ -287,8 +287,6 @@ body {
   padding: 20px;
 }
 
-/* Remove blank sheets styles completely */
-
 /* Add conversion badge style */
 .conversion-badge {
   font-size: 10px;
@@ -510,27 +508,197 @@ body {
   z-index: 10;
 }
 
-.toolbar-button {
+/* --------------------------------------------add button------------------- */
+.Add-button {
+  position: relative;
+  width: 170px;
+  height: 50px;
+  cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
-  background-color: #ffffff;
-  border: 1px solid rgba(0, 0, 0, 0.1);
-  border-radius: 12px;
-  cursor: pointer;
-  font-weight: 400;
-  font-size: 25px;
-  transition: all 0.2s ease;
-  color: #000000;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  border: 1px solid #34974d;
+  background-color: #3aa856;
+  border-radius: 24px;
 }
 
-.toolbar-button:hover {
-  background-color: #f5f5f7;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+.Add-button, .button__icon, .button__text {
+  transition: all 0.3s;
 }
+
+.Add-button .button__text {
+  transform: translateX(30px);
+  color: #fff;
+  font-weight: 500;
+}
+
+.Add-button .button__icon {
+  position: absolute;
+  transform: translateX(109px);
+  height: 100%;
+  width: 39px;
+  background-color: #34974d;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.Add-button .svg {
+  width: 30px;
+  stroke: #fff;
+}
+
+.Add-button:hover  {
+  background: #34974d;
+}
+.Add-button:hover .button__icon{
+  border-radius: 24px;
+}
+
+
+.Add-button:hover .button__text {
+  color: transparent;
+}
+
+.Add-button:hover .button__icon {
+  width: 148px;
+  transform: translateX(0);
+}
+
+.Add-button:active .button__icon {
+  background-color: #2e8644;
+}
+
+.Add-button:active {
+  border: 1px solid #2e8644;
+}
+
+/* -------------------------------duplicate------------------------------------ */
+/* From uiverse.io by @Ali-Tahmazi99 */
+.Duplicate{
+ display: inline-block;
+ width: 150px;
+ height: 50px;
+ border-radius: 10px;
+ border: 1px solid #03045e;
+ position: relative;
+ overflow: hidden;
+ transition: all 0.5s ease-in;
+ z-index: 1;
+ background-color:rgb(255, 255, 255);
+ border-radius: 24px;
+
+}
+
+.Duplicate::before,
+.Duplicate::after {
+ content: '';
+ position: absolute;
+ top: 0;
+ width: 0;
+ height: 100%;
+ transform: skew(15deg);
+ transition: all 0.5s;
+ overflow: hidden;
+ z-index: -1;
+ 
+}
+
+.Duplicate::before {
+ left: -10px;
+ background: #240046;
+}
+
+.Duplicate::after {
+ right: -10px;
+ background: #5a189a;
+}
+
+.Duplicate:hover::before,
+.Duplicate:hover::after {
+ width: 58%;
+}
+
+.Duplicate:hover span {
+ color: #e0aaff;
+ transition: 0.3s;
+}
+
+.Duplicate span {
+ color: #03045e;
+ font-size: 16px;
+ transition: all 0.3s ease-in;
+ font-size:16px;
+ font-weight: 600px;
+}
+
+/* ------------------------------------------delete boton--------------------------------------- */
+.delete-button {
+  width: 160px;
+  height: 50px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  background: #e62222;
+  border: none;
+  border-radius: 24px;
+  box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.15);
+  position: relative;
+  transition: 200ms;
+  overflow: hidden;
+}
+
+.delete-button,
+.delete-button span {
+  transition: 200ms;
+}
+
+.delete-button__text {
+  transform: translateX(35px);
+  color: white;
+  font-weight: bold;
+  transition: 200ms;
+}
+
+.delete-button__icon {
+  position: absolute;
+  border-left: 1px solid #c41b1b;
+  transform: translateX(110px);
+  height: 40px;
+  width: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: 200ms;
+}
+
+.delete-button svg {
+  width: 15px;
+  fill: #eee;
+  transition: transform 100ms;
+}
+
+.delete-button:hover {
+  background: #ff3636;
+}
+
+.delete-button:hover .delete-button__text {
+  color: transparent;
+}
+
+.delete-button:hover .delete-button__icon {
+  width: 150px;
+  border-left: none;
+  transform: translateX(0);
+}
+
+.delete-button:focus {
+  outline: none;
+}
+
+.delete-button:active .delete-button__icon svg {
+  transform: scale(0.8);
+}
+/* ------------------------------------------------moon sun ------------------------------------ */
 
 /* Position color toggle beside delete button */
 .color-toggle {
@@ -539,48 +707,305 @@ body {
   margin-left: 25px;
 }
 
-.toggle-label {
-  display: flex;
-  align-items: center;
-  cursor: pointer;
+/* New animated switch styles - Updated size 70px x 40px */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 70px;
+  height: 40px;
 }
 
-.toggle-label input {
+.switch #input,
+.switch #input-modal {
   opacity: 0;
   width: 0;
   height: 0;
 }
 
-.toggle-slider {
-  position: relative;
-  display: inline-block;
-  width: 44px;
-  height: 24px;
-  background-color: rgba(0, 0, 0, 0.1);
-  border-radius: 24px;
-  margin-right: 12px;
-  transition: 0.3s ease;
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #2196f3;
+  -webkit-transition: 0.4s;
+  transition: 0.4s;
+  z-index: 0;
+  overflow: hidden;
 }
 
-.toggle-slider:before {
+.sun-moon {
   position: absolute;
   content: "";
-  height: 20px;
-  width: 20px;
-  left: 2px;
-  bottom: 2px;
-  background-color: #ffffff;
+  height: 32px;
+  width: 32px;
+  left: 4px;
+  bottom: 4px;
+  background-color: yellow;
+  -webkit-transition: 0.4s;
+  transition: 0.4s;
+}
+
+#input:checked + .slider,
+#input-modal:checked + .slider {
+  background-color: black;
+}
+
+#input:focus + .slider,
+#input-modal:focus + .slider {
+  box-shadow: 0 0 1px #2196f3;
+}
+
+#input:checked + .slider .sun-moon,
+#input-modal:checked + .slider .sun-moon {
+  -webkit-transform: translateX(30px);
+  -ms-transform: translateX(30px);
+  transform: translateX(30px);
+  background-color: white;
+  -webkit-animation: rotate-center 0.6s ease-in-out both;
+  animation: rotate-center 0.6s ease-in-out both;
+}
+
+.moon-dot {
+  opacity: 0;
+  transition: 0.4s;
+  fill: gray;
+}
+
+#input:checked + .slider .sun-moon .moon-dot,
+#input-modal:checked + .slider .sun-moon .moon-dot {
+  opacity: 1;
+}
+
+.slider.round {
+  border-radius: 40px;
+}
+
+.slider.round .sun-moon {
   border-radius: 50%;
-  transition: 0.3s ease;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
-input:checked + .toggle-slider {
-  background-color: #ffdd00;
+#moon-dot-1,
+#moon-dot-1-modal {
+  left: 12px;
+  top: 4px;
+  position: absolute;
+  width: 7px;
+  height: 7px;
+  z-index: 4;
 }
 
-input:checked + .toggle-slider:before {
-  transform: translateX(20px);
+#moon-dot-2,
+#moon-dot-2-modal {
+  left: 3px;
+  top: 12px;
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  z-index: 4;
+}
+
+#moon-dot-3,
+#moon-dot-3-modal {
+  left: 20px;
+  top: 22px;
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  z-index: 4;
+}
+
+#light-ray-1,
+#light-ray-1-modal {
+  left: -10px;
+  top: -10px;
+  position: absolute;
+  width: 52px;
+  height: 52px;
+  z-index: -1;
+  fill: white;
+  opacity: 10%;
+}
+
+#light-ray-2,
+#light-ray-2-modal {
+  left: -50%;
+  top: -50%;
+  position: absolute;
+  width: 64px;
+  height: 64px;
+  z-index: -1;
+  fill: white;
+  opacity: 10%;
+}
+
+#light-ray-3,
+#light-ray-3-modal {
+  left: -22px;
+  top: -22px;
+  position: absolute;
+  width: 76px;
+  height: 76px;
+  z-index: -1;
+  fill: white;
+  opacity: 10%;
+}
+
+.cloud-light {
+  position: absolute;
+  fill: #eee;
+  animation-name: cloud-move;
+  animation-duration: 6s;
+  animation-iteration-count: infinite;
+}
+
+.cloud-dark {
+  position: absolute;
+  fill: #ccc;
+  animation-name: cloud-move;
+  animation-duration: 6s;
+  animation-iteration-count: infinite;
+  animation-delay: 1s;
+}
+
+#cloud-1,
+#cloud-1-modal {
+  left: 36px;
+  top: 18px;
+  width: 48px;
+}
+
+#cloud-2,
+#cloud-2-modal {
+  left: 52px;
+  top: 12px;
+  width: 24px;
+}
+
+#cloud-3,
+#cloud-3-modal {
+  left: 22px;
+  top: 28px;
+  width: 36px;
+}
+
+#cloud-4,
+#cloud-4-modal {
+  left: 43px;
+  top: 22px;
+  width: 48px;
+}
+
+#cloud-5,
+#cloud-5-modal {
+  left: 58px;
+  top: 17px;
+  width: 24px;
+}
+
+#cloud-6,
+#cloud-6-modal {
+  left: 26px;
+  top: 31px;
+  width: 36px;
+}
+
+@keyframes cloud-move {
+  0% {
+    transform: translateX(0px);
+  }
+  40% {
+    transform: translateX(5px);
+  }
+  80% {
+    transform: translateX(-5px);
+  }
+  100% {
+    transform: translateX(0px);
+  }
+}
+
+.stars {
+  transform: translateY(-38px);
+  opacity: 0;
+  transition: 0.4s;
+}
+
+.star {
+  fill: white;
+  position: absolute;
+  -webkit-transition: 0.4s;
+  transition: 0.4s;
+  animation-name: star-twinkle;
+  animation-duration: 2s;
+  animation-iteration-count: infinite;
+}
+
+#input:checked + .slider .stars,
+#input-modal:checked + .slider .stars {
+  -webkit-transform: translateY(0);
+  -ms-transform: translateY(0);
+  transform: translateY(0);
+  opacity: 1;
+}
+
+#star-1,
+#star-1-modal {
+  width: 24px;
+  top: 2px;
+  left: 4px;
+  animation-delay: 0.3s;
+}
+
+#star-2,
+#star-2-modal {
+  width: 7px;
+  top: 19px;
+  left: 4px;
+}
+
+#star-3,
+#star-3-modal {
+  width: 14px;
+  top: 24px;
+  left: 12px;
+  animation-delay: 0.6s;
+}
+
+#star-4,
+#star-4-modal {
+  width: 22px;
+  top: 0px;
+  left: 22px;
+  animation-delay: 1.3s;
+}
+
+@keyframes star-twinkle {
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.2);
+  }
+  80% {
+    transform: scale(0.8);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes rotate-center {
+  0% {
+    -webkit-transform: translateX(30px) rotate(0);
+    transform: translateX(30px) rotate(0);
+  }
+  100% {
+    -webkit-transform: translateX(30px) rotate(360deg);
+    transform: translateX(30px) rotate(360deg);
+  }
 }
 
 .toggle-text {
@@ -588,7 +1013,99 @@ input:checked + .toggle-slider:before {
   font-weight: 500;
   color: #000000;
   letter-spacing: -0.2px;
+  margin-left: 12px;
 }
+
+/* ------------------------------------------------get help----------------- */
+
+.help-container {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      cursor: pointer;
+      margin-left:950px;
+    }
+
+    .help-button {
+      background-color: #000000;
+      color: #ffffff;
+      border: none;
+      border-radius: 50%;
+      width: 3rem;
+      height: 3rem;
+      font-weight: bold;
+      font-size: 1.5rem;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+      transition: background 0.2s;
+    }
+
+    .help-button:hover {
+      background-color: #000000;
+    }
+
+    .help-text {
+      font-size: 1rem;
+      color: #292524;
+      font-weight: 500;
+    }
+
+    /* Modal Styles */
+    .modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+
+    .modal-content {
+      background: rgb(255, 255, 255);
+      padding: 1rem;
+      border-radius: 10px;
+      width: 90%;
+      max-width: 500px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+    }
+
+    .modal video {
+      width: 100%;
+      border-radius: 8px;
+    }
+
+    .review-box {
+      margin-top: 1rem;
+    }
+
+    .review-box textarea {
+      width: 100%;
+      height: 80px;
+      padding: 0.5rem;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+      resize: none;
+    }
+
+    .close-btn {
+      margin-top: 1rem;
+      background: #292524;
+      color: white;
+      padding: 0.5rem 1rem;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    .close-btn:hover {
+      background: #44403c;
+    }
+
+
+
+
+
+/* -------------------------------------------------canvas------------------------ */
 
 /* Canvas container */
 .canvas-container {
@@ -880,6 +1397,14 @@ input:checked + .toggle-slider:before {
 
 .option-group {
   margin-bottom: 20px;
+  margin-top: 30px;
+}
+
+.option-group h3 {
+  color: rgb(18, 173, 230);
+  margin-bottom: 20px;
+  font-size: 25px;
+  font-weight: 200px;
 }
 
 .option-group h4 {
@@ -902,14 +1427,14 @@ input:checked + .toggle-slider:before {
   gap: 12px;
   cursor: pointer;
   font-weight: 500;
-  color: #00293b;
+  color: #000000;
   padding: 8px 0;
   font-size: 25px;
 }
 
 .radio-group input[type="radio"] {
-  width: 18px;
-  height: 18px;
+  width: 30px;
+  height: 30px;
   accent-color: #00293b;
 }
 
@@ -955,25 +1480,51 @@ input:checked + .toggle-slider:before {
   box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.1);
 }
 
-.checkbox-label {
+.container {
   display: flex;
   align-items: center;
-  gap: 12px;
   cursor: pointer;
-  font-weight: 500;
-  color: #000000;
-  padding: 8px 0;
-  font-size: 20px;
+  position: relative;
+  user-select: none;
+  margin-top:50px;
+  margin-left:30px;
+  margin-right:50px;
+  margin-bottom: 50px;
 }
 
-.checkbox-label input[type="checkbox"] {
-  width: 18px;
-  height: 18px;
-  accent-color: #ff0404;
+.container input {
+  position: absolute;
+  opacity: 0;
+  cursor: pointer;
 }
+
+.checkmark {
+  height: 1.5em;
+  width: 1.5em;
+  border: 2px solid #32cd32;
+  border-radius: 4px;
+  transition: all 0.3s;
+  display: inline-block;
+  box-sizing: border-box;
+  margin-right: 50px;
+}
+
+.container input:checked ~ .checkmark {
+  transform: rotate(45deg);
+  height: 2em;
+  width: 0.7em;
+  border-color: #32cd32;
+  border-top-color: transparent;
+  border-left-color: transparent;
+  border-radius: 0;
+}
+
+
+
+
 
 .cost-summary {
-  margin-top: -40px;
+  margin-top: 20px;
   background-color: #f5f5f7;
   padding: 20px;
   border-radius: 16px;
@@ -1089,28 +1640,146 @@ input:checked + .toggle-slider:before {
   color: transparent;
 }
 
+/* ---------------------------------------------------------paymrnt button------------ */
+
 .payment-button {
+  position: relative;
+  padding: 12px 24px;
+  font-size: 16px;
+  background: #1a1a1a;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 12px;
-  padding: 16px 24px;
-  background-color: #ffffff;
-  color: #ffffff;
-  border: none;
-  border-radius: 0px;
-  cursor: pointer;
-  font-weight: 700;
-  font-size: 30px;
-  width: 100%;
-  transition: all 0.2s ease;
-  letter-spacing: -0.2px;
+  gap: 10px;
+  transition: all 0.3s ease;
+  width:360px;
+  text-align: center;
 }
 
 .payment-button:hover {
-  transform: translateX(2px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4);
 }
+
+.btn-text{
+  margin-left: 110px;
+}
+
+.icon-container {
+  position: relative;
+  width: 24px;
+  height: 24px;
+  margin-left: 0px;
+}
+
+.icon {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 24px;
+  height: 24px;
+  color: #22c55e;
+  opacity: 0;
+  visibility: hidden;
+}
+
+.default-icon {
+  opacity: 1;
+  visibility: visible;
+}
+
+.payment-button:hover .icon {
+  animation: none;
+}
+
+.payment-button:hover .wallet-icon {
+  opacity: 0;
+  visibility: hidden;
+}
+
+.payment-button:hover .card-icon {
+  animation: iconRotate 2.5s infinite;
+  animation-delay: 0s;
+}
+
+.payment-button:hover .payment-icon {
+  animation: iconRotate 2.5s infinite;
+  animation-delay: 0.5s;
+}
+
+.payment-button:hover .dollar-icon {
+  animation: iconRotate 2.5s infinite;
+  animation-delay: 1s;
+}
+
+.payment-button:hover .check-icon {
+  animation: iconRotate 2.5s infinite;
+  animation-delay: 1.5s;
+}
+
+.payment-button:active .icon {
+  animation: none;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s ease;
+}
+
+.payment-button:active .check-icon {
+  animation: checkmarkAppear 0.6s ease forwards;
+  visibility: visible;
+}
+
+.btn-text {
+  font-weight: 600;
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+@keyframes iconRotate {
+  0% {
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(10px) scale(0.5);
+  }
+  5% {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0) scale(1);
+  }
+  15% {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0) scale(1);
+  }
+  20% {
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-10px) scale(0.5);
+  }
+  100% {
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-10px) scale(0.5);
+  }
+}
+
+@keyframes checkmarkAppear {
+  0% {
+    opacity: 0;
+    transform: scale(0.5) rotate(-45deg);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(1.2) rotate(0deg);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+  }
+}
+
 
 /* Print modal - Apple style */
 .print-modal {
@@ -1158,38 +1827,91 @@ input:checked + .toggle-slider:before {
 
 .modal-actions {
   display: flex;
-  justify-content: flex-end;
-  gap: 16px;
+  justify-content: flex;
+  
   margin-top: 32px;
 }
 
-.cancel-button {
-  padding: 12px 24px;
-  background-color: #f5f5f7;
-  border: 1px solid rgba(0, 0, 0, 0.1);
-  border-radius: 12px;
-  cursor: pointer;
-  color: #000000;
+.cancel-button{
+  background-color: red;
+  width:100px;
+  height:70px;
+  border-radius:16px;
+  margin-right:50px;
+  font-weight:600px;
+}
+
+/* ----------------------------------------queue------------------------------- */
+
+.queue-button {
+  border-radius:24px;
+  /* --border-width: 4px; */
+  appearance: none;
+  position: relative;
+  padding: 1em 2em;
+  border: 0;
+  background-color: #00aaff;
+  font-family: "Roboto", Arial, "Segoe UI", sans-serif;
+  font-size: 18px;
   font-weight: 600;
-  font-size: 14px;
-  transition: all 0.2s ease;
+  color: #ffffff;
+  z-index: 2;
+  box-sizing: border-box;
+  height:70px;
+
 }
 
-.cancel-button:hover {
-  background-color: rgba(0, 0, 0, 0.05);
+/* .queue-button::after {
+  --m-i: linear-gradient(#ffffff, #ffffff);
+  --m-o: content-box, padding-box;
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  padding: var(--border-width);
+  border-radius: var(--border-radius);
+  background-image: conic-gradient(
+    #D1ABE6,
+    #9B59B6,
+    #E5D9EC,
+    #FFAFCC,
+    #BDE0FE,
+    #655adc,
+    #488cfb
+  );
+  -webkit-mask-image: var(--m-i), var(--m-i);
+  mask-image: var(--m-i), var(--m-i);
+  -webkit-mask-origin: var(--m-o);
+  mask-origin: var(--m-o);
+  -webkit-mask-clip: var(--m-o);
+  mask-composite: exclude;
+  -webkit-mask-composite: destination-out;
+  filter: hue-rotate(0);
+  animation: rotate-hue linear 500ms infinite;
+  animation-play-state: paused;
+  box-sizing: border-box;
 }
 
-/* Add styles for the delete page button */
-.delete-button {
-  background-color: #ffffff;
-  color: #ff3b30;
-  border-color: rgba(255, 59, 48, 0.2);
+.queue-button:hover::after {
+  animation-play-state: running;
 }
 
-.delete-button:hover {
-  background-color: rgba(255, 59, 48, 0.05);
-  border-color: rgba(255, 59, 48, 0.3);
+.queue-button:active {
+  --border-width: 5px;
 }
+
+@keyframes rotate-hue {
+  to {
+    filter: hue-rotate(1turn);
+  }
+} */
+/* ----------------------------------------------------------------- */
+
+
+
+
 
 /* Add styles for resize handles - Apple style */
 .resize-handle {
@@ -1382,7 +2104,6 @@ input:checked + .toggle-slider:before {
   .sidebar {
     width: 280px;
   }
-
   .right-sidebar {
     width: 250px;
   }
@@ -1392,15 +2113,12 @@ input:checked + .toggle-slider:before {
   .navbar {
     padding: 0 16px;
   }
-
   .page-title {
     font-size: 16px;
   }
-
   .main-content {
     flex-direction: column;
   }
-
   .sidebar,
   .right-sidebar {
     width: 100%;
@@ -1410,17 +2128,14 @@ input:checked + .toggle-slider:before {
     border-left: none;
     border-bottom: 1px solid rgba(0, 0, 0, 0.1);
   }
-
   .a4-canvas {
     transform: scale(0.8);
     transform-origin: top center;
   }
-
   .payment-floating-container {
     bottom: 16px;
     right: 16px;
   }
-
   .payment-box {
     width: 280px;
     padding: 16px;
