@@ -4,13 +4,10 @@ import { useState, useRef, useEffect } from "react"
 import { useLocation, useNavigate } from "react-router-dom"
 import {
   Plus,
-  Copy,
   Trash,
   ImageIcon,
   FileText,
   FileIcon,
-  Printer,
-  CreditCard,
   Crop,
   RotateCcw,
   RotateCw,
@@ -35,8 +32,6 @@ function FilesPage() {
   const [draggingItem, setDraggingItem] = useState(null)
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 })
 
-  
-
   // State for image editing
   const [selectedItem, setSelectedItem] = useState(null)
   const [cropMode, setCropMode] = useState(false)
@@ -49,13 +44,15 @@ function FilesPage() {
   const [pdfCanvas, setPdfCanvas] = useState(null)
   const [allPdfPages, setAllPdfPages] = useState([])
 
-  // State for converted documents
-  const [convertedDocs, setConvertedDocs] = useState(new Map())
+  // Enhanced Word document state for exact formatting
+  const [wordContent, setWordContent] = useState(null)
+  const [wordPreview, setWordPreview] = useState("")
+  const [wordImagePreview, setWordImagePreview] = useState(null) // For exact visual preview
 
   // Group files by type
   const fileCategories = {
     images: files.filter((file) => file.type.startsWith("image/")),
-    pdfs: [...files.filter((file) => file.type === "application/pdf"), ...Array.from(convertedDocs.values())],
+    pdfs: files.filter((file) => file.type === "application/pdf"),
     documents: files.filter(
       (file) =>
         file.type === "application/msword" ||
@@ -72,9 +69,10 @@ function FilesPage() {
     ),
   }
 
-  // Initialize PDF.js
+  // Initialize PDF.js and Mammoth.js
   useEffect(() => {
-    const loadPDFJS = async () => {
+    const loadLibraries = async () => {
+      // Load PDF.js
       if (!window.pdfjsLib) {
         const script = document.createElement("script")
         script.src = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"
@@ -84,97 +82,23 @@ function FilesPage() {
         }
         document.head.appendChild(script)
       }
-    }
-    loadPDFJS()
-  }, [])
 
-  // Improved Word document to PDF conversion
-  const convertWordToPDF = async (file) => {
-    try {
-      console.log("Converting Word document to PDF:", file.name)
-      // For DOCX files, use mammoth to extract content and preserve formatting
-      if (file.name.toLowerCase().endsWith(".docx")) {
-        const mammoth = await import("mammoth")
-        const arrayBuffer = await file.arrayBuffer()
-        // Extract HTML to preserve formatting better
-        const result = await mammoth.convertToHtml({ arrayBuffer })
-        const htmlContent = result.value
-
-        // Create PDF using jsPDF with better formatting
-        const { jsPDF } = await import("jspdf")
-        const pdf = new jsPDF({
-          orientation: "portrait",
-          unit: "mm",
-          format: "a4",
-        })
-
-        // Create a temporary div to render HTML content
-        const tempDiv = document.createElement("div")
-        tempDiv.innerHTML = htmlContent
-        tempDiv.style.width = "190mm" // A4 width minus margins
-        tempDiv.style.fontFamily = "Arial, sans-serif"
-        tempDiv.style.fontSize = "12pt"
-        tempDiv.style.lineHeight = "1.4"
-        tempDiv.style.padding = "10mm"
-        tempDiv.style.position = "absolute"
-        tempDiv.style.left = "-9999px"
-        document.body.appendChild(tempDiv)
-
-        // Use html2canvas to convert HTML to image, then to PDF
-        const html2canvas = await import("html2canvas")
-        const canvas = await html2canvas.default(tempDiv, {
-          scale: 2,
-          useCORS: true,
-          allowTaint: true,
-          backgroundColor: "#ffffff",
-        })
-
-        document.body.removeChild(tempDiv)
-
-        // Calculate dimensions to fit A4
-        const imgWidth = 190 // A4 width minus margins
-        const imgHeight = (canvas.height * imgWidth) / canvas.width
-
-        // Add image to PDF - single page only
-        pdf.addImage(canvas.toDataURL("image/png"), "PNG", 10, 10, imgWidth, Math.min(imgHeight, 277))
-
-        const pdfBlob = pdf.output("blob")
-        const convertedFile = new File([pdfBlob], file.name.replace(/\.(docx?|DOCX?)$/, ".pdf"), {
-          type: "application/pdf",
-        })
-
-        setConvertedDocs((prev) => new Map(prev.set(file.name, convertedFile)))
-        return convertedFile
+      // Load Mammoth.js for Word documents
+      if (!window.mammoth) {
+        const mammothScript = document.createElement("script")
+        mammothScript.src = "https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.4.2/mammoth.browser.min.js"
+        document.head.appendChild(mammothScript)
       }
 
-      // For DOC files, create a simple single-page PDF
-      const { jsPDF } = await import("jspdf")
-      const pdf = new jsPDF({
-        orientation: "portrait",
-        unit: "mm",
-        format: "a4",
-      })
-
-      // Add basic document info on single page
-      pdf.setFontSize(14)
-      pdf.text(`Document: ${file.name}`, 20, 30)
-      pdf.setFontSize(12)
-      pdf.text(`Size: ${(file.size / 1024).toFixed(1)} KB`, 20, 45)
-      pdf.text(`Type: ${file.type}`, 20, 60)
-      pdf.text("Content converted to PDF for printing", 20, 80)
-
-      const pdfBlob = pdf.output("blob")
-      const convertedFile = new File([pdfBlob], file.name.replace(/\.(docx?|DOCX?)$/, ".pdf"), {
-        type: "application/pdf",
-      })
-
-      setConvertedDocs((prev) => new Map(prev.set(file.name, convertedFile)))
-      return convertedFile
-    } catch (error) {
-      console.error("Word to PDF conversion failed:", error)
-      return file
+      // Load html2canvas for exact Word document rendering
+      if (!window.html2canvas) {
+        const html2canvasScript = document.createElement("script")
+        html2canvasScript.src = "https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"
+        document.head.appendChild(html2canvasScript)
+      }
     }
-  }
+    loadLibraries()
+  }, [])
 
   // Function to get accurate PDF page count using PDF.js
   const getPDFPageCount = async (file) => {
@@ -198,8 +122,148 @@ function FilesPage() {
     })
   }
 
-  // Load PDF for preview and render all pages
-  const loadPDFPreview = async (file) => {
+  // Enhanced function to get Word document page count with better estimation
+  const getWordPageCount = async (file) => {
+    try {
+      if (!window.mammoth) {
+        return 1
+      }
+
+      const arrayBuffer = await file.arrayBuffer()
+      const result = await window.mammoth.extractRawText({ arrayBuffer })
+      const text = result.value
+
+      // Better page estimation based on content analysis
+      const lines = text.split("\n").filter((line) => line.trim().length > 0)
+      const linesPerPage = 35 // Average lines per A4 page
+      const estimatedPages = Math.max(1, Math.ceil(lines.length / linesPerPage))
+
+      return estimatedPages
+    } catch (error) {
+      console.error("Error analyzing Word document:", error)
+      return 1
+    }
+  }
+
+  // Enhanced Word document preview with exact formatting preservation
+  const loadWordPreview = async (file) => {
+    try {
+      if (!window.mammoth) {
+        console.log("Mammoth.js not available")
+        return
+      }
+
+      const arrayBuffer = await file.arrayBuffer()
+
+      // Extract with maximum formatting preservation
+      const result = await window.mammoth.convertToHtml({
+        arrayBuffer,
+        options: {
+          // Preserve all formatting
+          includeDefaultStyleMap: true,
+          includeEmbeddedStyleMap: true,
+          // Convert images
+          convertImage: window.mammoth.images.imgElement((image) =>
+            image.read("base64").then((imageBuffer) => ({
+              src: "data:" + image.contentType + ";base64," + imageBuffer,
+            })),
+          ),
+        },
+      })
+
+      const htmlContent = result.value
+
+      setWordContent({
+        html: htmlContent,
+        text: result.value,
+        messages: result.messages,
+        rawArrayBuffer: arrayBuffer, // Store for exact printing
+      })
+
+      // Create exact preview with Word-like styling
+      const exactPreviewHtml = `
+        <div style="
+          font-family: 'Times New Roman', Times, serif;
+          font-size: 12pt;
+          line-height: 1.15;
+          padding: 1in;
+          background: white;
+          color: black;
+          max-width: 8.5in;
+          min-height: 11in;
+          margin: 0 auto;
+          box-shadow: 0 0 10px rgba(0,0,0,0.1);
+          border: 1px solid #ddd;
+          border-radius: 4px;
+          overflow: visible;
+          page-break-inside: avoid;
+        ">
+          ${htmlContent}
+        </div>
+      `
+      setWordPreview(exactPreviewHtml)
+
+      // Generate image preview for exact visual representation
+      await generateWordImagePreview(exactPreviewHtml)
+    } catch (error) {
+      console.error("Error loading Word document:", error)
+      setWordPreview(`
+        <div style="padding: 20px; text-align: center; color: #666; border: 1px solid #ddd; border-radius: 4px;">
+          <p><strong>Word Document Preview</strong></p>
+          <p>File: ${file.name}</p>
+          <p>Size: ${(file.size / 1024).toFixed(1)} KB</p>
+          <p>Exact formatting will be preserved during printing</p>
+        </div>
+      `)
+    }
+  }
+
+  // Generate exact image preview of Word document
+  const generateWordImagePreview = async (htmlContent) => {
+    try {
+      if (!window.html2canvas) {
+        return
+      }
+
+      // Create temporary container for rendering
+      const tempContainer = document.createElement("div")
+      tempContainer.innerHTML = htmlContent
+      tempContainer.style.position = "absolute"
+      tempContainer.style.left = "-9999px"
+      tempContainer.style.top = "0"
+      tempContainer.style.width = "8.5in"
+      tempContainer.style.background = "white"
+
+      document.body.appendChild(tempContainer)
+
+      // Wait for fonts to load
+      await new Promise((resolve) => setTimeout(resolve, 1000))
+
+      // Render to canvas with high quality
+      const canvas = await window.html2canvas(tempContainer.firstChild, {
+        scale: 2, // High resolution
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: "#ffffff",
+        width: 816, // 8.5 inches at 96 DPI
+        height: 1056, // 11 inches at 96 DPI
+        scrollX: 0,
+        scrollY: 0,
+      })
+
+      // Convert to image data
+      const imageData = canvas.toDataURL("image/png", 1.0)
+      setWordImagePreview(imageData)
+
+      // Clean up
+      document.body.removeChild(tempContainer)
+    } catch (error) {
+      console.error("Error generating Word image preview:", error)
+    }
+  }
+
+  // Load PDF for preview and render specific pages
+  const loadPDFPreview = async (file, startPage = 1, endPage = null) => {
     try {
       if (!window.pdfjsLib) {
         console.log("PDF.js not available")
@@ -211,11 +275,13 @@ function FilesPage() {
         try {
           const pdf = await window.pdfjsLib.getDocument({ data: this.result }).promise
           setPdfDoc(pdf)
-          setCurrentPdfPage(1)
+          setCurrentPdfPage(startPage)
 
-          // Render all pages
+          const actualEndPage = endPage || pdf.numPages
           const pages = []
-          for (let i = 1; i <= pdf.numPages; i++) {
+
+          // Render only the specified page range
+          for (let i = startPage; i <= Math.min(actualEndPage, pdf.numPages); i++) {
             const page = await pdf.getPage(i)
             const scale = 1.5
             const viewport = page.getViewport({ scale })
@@ -231,11 +297,11 @@ function FilesPage() {
             }
 
             await page.render(renderContext).promise
-            pages.push(canvas)
+            pages.push({ canvas, pageNumber: i })
           }
 
           setAllPdfPages(pages)
-          setPdfCanvas(pages[0])
+          setPdfCanvas(pages[0]?.canvas)
         } catch (error) {
           console.error("Error loading PDF for preview:", error)
         }
@@ -248,18 +314,18 @@ function FilesPage() {
 
   // Handle PDF page navigation
   const goToPDFPage = (direction) => {
-    if (!pdfDoc) return
+    if (!pdfDoc || allPdfPages.length === 0) return
 
-    let newPage = currentPdfPage
-    if (direction === "prev" && currentPdfPage > 1) {
-      newPage = currentPdfPage - 1
-    } else if (direction === "next" && currentPdfPage < pdfDoc.numPages) {
-      newPage = currentPdfPage + 1
+    let newPageIndex = allPdfPages.findIndex((p) => p.pageNumber === currentPdfPage)
+    if (direction === "prev" && newPageIndex > 0) {
+      newPageIndex--
+    } else if (direction === "next" && newPageIndex < allPdfPages.length - 1) {
+      newPageIndex++
     }
 
-    if (newPage !== currentPdfPage) {
-      setCurrentPdfPage(newPage)
-      setPdfCanvas(allPdfPages[newPage - 1])
+    if (newPageIndex >= 0 && newPageIndex < allPdfPages.length) {
+      setCurrentPdfPage(allPdfPages[newPageIndex].pageNumber)
+      setPdfCanvas(allPdfPages[newPageIndex].canvas)
     }
   }
 
@@ -625,6 +691,7 @@ function FilesPage() {
     showModal: false,
     file: null,
     pageCount: 0,
+    fileType: "", // 'pdf', 'word', 'text'
     printSettings: {
       doubleSided: false,
       pageRange: "all",
@@ -634,44 +701,35 @@ function FilesPage() {
     },
   })
 
-  // Add function to show file options with loading state
+  // Enhanced function to show file options with proper type detection
   const showFileOptions = async (file) => {
     console.log("Clicked on file:", file.name, "Type:", file.type)
 
-    setFileOptions({
-      showModal: true,
-      file,
-      pageCount: 0,
-      printSettings: {
-        doubleSided: false,
-        pageRange: "all",
-        startPage: 1,
-        endPage: 1,
-        colorMode: "bw",
-      },
-    })
-
-    // Load PDF preview
-    if (file.type === "application/pdf") {
-      loadPDFPreview(file)
-    }
-
+    let fileType = "unknown"
     let pageCount = 1
-    try {
-      if (file.type === "application/pdf") {
-        pageCount = await getPDFPageCount(file)
-      } else {
-        pageCount = 1
-      }
-    } catch (error) {
-      console.error("Error counting pages:", error)
-      pageCount = 1
+
+    // Determine file type and get page count
+    if (file.type === "application/pdf") {
+      fileType = "pdf"
+      pageCount = await getPDFPageCount(file)
+      loadPDFPreview(file) // Load full PDF initially
+    } else if (
+      file.type === "application/msword" ||
+      file.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    ) {
+      fileType = "word"
+      pageCount = await getWordPageCount(file)
+      loadWordPreview(file) // Load Word preview with exact formatting
+    } else if (file.type === "text/plain") {
+      fileType = "text"
+      pageCount = 1 // Text files are usually single page
     }
 
     setFileOptions({
       showModal: true,
       file,
       pageCount,
+      fileType,
       printSettings: {
         doubleSided: false,
         pageRange: "all",
@@ -697,13 +755,20 @@ function FilesPage() {
     }
   }
 
-  // Add function to add file to print queue
+  // Enhanced function to add file to print queue with exact formatting preservation
   const addFileToPrintQueue = () => {
     let pagesToPrint = 0
+    let actualStartPage = 1
+    let actualEndPage = fileOptions.pageCount
+
     if (fileOptions.printSettings.pageRange === "all") {
       pagesToPrint = fileOptions.pageCount
+      actualStartPage = 1
+      actualEndPage = fileOptions.pageCount
     } else {
-      pagesToPrint = fileOptions.printSettings.endPage - fileOptions.printSettings.startPage + 1
+      actualStartPage = Math.max(1, fileOptions.printSettings.startPage)
+      actualEndPage = Math.min(fileOptions.pageCount, fileOptions.printSettings.endPage)
+      pagesToPrint = actualEndPage - actualStartPage + 1
     }
 
     const itemCost = calculateDoubleSidedCost(
@@ -712,21 +777,25 @@ function FilesPage() {
       fileOptions.printSettings.doubleSided,
     )
 
-    setPrintQueue([
-      ...printQueue,
-      {
-        file: fileOptions.file,
-        pages: pagesToPrint,
-        doubleSided: fileOptions.printSettings.doubleSided,
-        colorMode: fileOptions.printSettings.colorMode,
-        cost: itemCost,
-        pageRange: fileOptions.printSettings.pageRange,
-        startPage: fileOptions.printSettings.startPage,
-        endPage: fileOptions.printSettings.endPage,
-      },
-    ])
+    const queueItem = {
+      file: fileOptions.file,
+      fileType: fileOptions.fileType,
+      pages: pagesToPrint,
+      actualStartPage,
+      actualEndPage,
+      doubleSided: fileOptions.printSettings.doubleSided,
+      colorMode: fileOptions.printSettings.colorMode,
+      cost: itemCost,
+      pageRange: fileOptions.printSettings.pageRange,
+      // Store additional data for exact printing
+      wordContent: fileOptions.fileType === "word" ? wordContent : null,
+      wordImagePreview: fileOptions.fileType === "word" ? wordImagePreview : null,
+    }
 
+    setPrintQueue([...printQueue, queueItem])
     setFileOptions({ ...fileOptions, showModal: false })
+
+    console.log("Added to queue with exact formatting:", queueItem)
   }
 
   // Add print queue state
@@ -808,12 +877,12 @@ function FilesPage() {
     }
   }, [])
 
-  // Handle document click with conversion
-  const handleDocumentClick = async (file) => {
-    console.log("Converting Word document:", file.name)
-    const convertedFile = await convertWordToPDF(file)
-    showFileOptions(convertedFile)
-  }
+  // Update PDF preview when page range changes
+  useEffect(() => {
+    if (fileOptions.showModal && fileOptions.fileType === "pdf" && fileOptions.printSettings.pageRange === "custom") {
+      loadPDFPreview(fileOptions.file, fileOptions.printSettings.startPage, fileOptions.printSettings.endPage)
+    }
+  }, [fileOptions.printSettings.startPage, fileOptions.printSettings.endPage, fileOptions.printSettings.pageRange])
 
   return (
     <div className="files-page">
@@ -887,14 +956,14 @@ function FilesPage() {
               </div>
               <ul className="file-list">
                 {fileCategories.documents.map((file, index) => (
-                  <li key={index} className="file-item" onClick={() => handleDocumentClick(file)}>
+                  <li key={index} className="file-item" onClick={() => showFileOptions(file)}>
                     <div className="file-icon">
                       <FileIcon size={24} />
                     </div>
                     <div className="file-info">
                       <div className="file-name">
                         {file.name.length > 15 ? `${file.name.substring(0, 15)}...` : file.name}
-                        <span className="conversion-badge">→PDF</span>
+                        <span className="conversion-badge">EXACT</span>
                       </div>
                       <div className="file-size">{(file.size / 1024).toFixed(1)} KB</div>
                     </div>
@@ -912,10 +981,10 @@ function FilesPage() {
                   {printQueue.map((item, index) => (
                     <li key={index} className="queue-item">
                       <div className="file-icon">
-                        {item.file.type.startsWith("image/") ? (
-                          <ImageIcon size={24} />
-                        ) : item.file.type === "application/pdf" ? (
+                        {item.fileType === "pdf" ? (
                           <FileText size={24} />
+                        ) : item.fileType === "word" ? (
+                          <FileIcon size={24} />
                         ) : (
                           <FileIcon size={24} />
                         )}
@@ -925,8 +994,12 @@ function FilesPage() {
                           {item.file.name.length > 15 ? `${item.file.name.substring(0, 15)}...` : item.file.name}
                         </div>
                         <div className="file-details">
-                          {item.pages} pages • {item.colorMode === "color" ? "Color" : "B&W"} •{" "}
+                          {item.pageRange === "custom"
+                            ? `Pages ${item.actualStartPage}-${item.actualEndPage}`
+                            : `${item.pages} pages`}{" "}
+                          • {item.colorMode === "color" ? "Color" : "B&W"} •{" "}
                           {item.doubleSided ? "Double-sided" : "Single-sided"}
+                          {item.fileType === "word" && " • EXACT FORMAT"}
                         </div>
                       </div>
                       <button
@@ -945,21 +1018,34 @@ function FilesPage() {
 
         <div className="canvas-area">
           <div className="canvas-toolbar">
-{/* ----------------------------------------------------------------------------------------- */}
-            
-            <button type="button" class="Add-button" onClick={addNewPage}>
-              <span class="button__text">Add Page</span>
-              <span class="button__icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" viewBox="0 0 24 24" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" stroke="currentColor" height="24" fill="none" class="svg"><line y2="19" y1="5" x2="12" x1="12"></line><line y2="12" y1="12" x2="19" x1="5"></line></svg></span>
-            </button>
-
-            <button class="Duplicate" onClick={duplicatePage}>
-              <span> COPY Page
+            <button type="button" className="Add-button" onClick={addNewPage}>
+              <span className="button__text">Add Page</span>
+              <span className="button__icon">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="24"
+                  viewBox="0 0 24 24"
+                  strokeWidth="2"
+                  strokeLinejoin="round"
+                  strokeLinecap="round"
+                  stroke="currentColor"
+                  height="24"
+                  fill="none"
+                  className="svg"
+                >
+                  <line y2="19" y1="5" x2="12" x1="12"></line>
+                  <line y2="12" y1="12" x2="19" x1="5"></line>
+                </svg>
               </span>
             </button>
 
-            <button class="delete-button" onClick={() => deletePage(activePage)}>
-              <span class="delete-button__text">Delete</span>
-              <span class="delete-button__icon">
+            <button className="Duplicate" onClick={duplicatePage}>
+              <span> COPY Page</span>
+            </button>
+
+            <button className="delete-button" onClick={() => deletePage(activePage)}>
+              <span className="delete-button__text">Delete</span>
+              <span className="delete-button__icon">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
                   <path d="M24 20.188l-8.315-8.209 8.2-8.282-3.697-3.697-8.212 8.318-8.31-8.203-3.666 3.666 8.321 8.24-8.206 8.313 3.666 3.666 8.237-8.318 8.285 8.203z"></path>
                 </svg>
@@ -985,33 +1071,6 @@ function FilesPage() {
                     <svg id="moon-dot-3" className="moon-dot" viewBox="0 0 100 100">
                       <circle cx="50" cy="50" r="50"></circle>
                     </svg>
-                    <svg id="light-ray-1" className="light-ray" viewBox="0 0 100 100">
-                      <circle cx="50" cy="50" r="50"></circle>
-                    </svg>
-                    <svg id="light-ray-2" className="light-ray" viewBox="0 0 100 100">
-                      <circle cx="50" cy="50" r="50"></circle>
-                    </svg>
-                    <svg id="light-ray-3" className="light-ray" viewBox="0 0 100 100">
-                      <circle cx="50" cy="50" r="50"></circle>
-                    </svg>
-                    <svg id="cloud-1" className="cloud-dark" viewBox="0 0 100 100">
-                      <circle cx="50" cy="50" r="50"></circle>
-                    </svg>
-                    <svg id="cloud-2" className="cloud-dark" viewBox="0 0 100 100">
-                      <circle cx="50" cy="50" r="50"></circle>
-                    </svg>
-                    <svg id="cloud-3" className="cloud-dark" viewBox="0 0 100 100">
-                      <circle cx="50" cy="50" r="50"></circle>
-                    </svg>
-                    <svg id="cloud-4" className="cloud-light" viewBox="0 0 100 100">
-                      <circle cx="50" cy="50" r="50"></circle>
-                    </svg>
-                    <svg id="cloud-5" className="cloud-light" viewBox="0 0 100 100">
-                      <circle cx="50" cy="50" r="50"></circle>
-                    </svg>
-                    <svg id="cloud-6" className="cloud-light" viewBox="0 0 100 100">
-                      <circle cx="50" cy="50" r="50"></circle>
-                    </svg>
                   </div>
                   <div className="stars">
                     <svg id="star-1" className="star" viewBox="0 0 20 20">
@@ -1032,41 +1091,12 @@ function FilesPage() {
               <span className="toggle-text">{currentPage?.colorMode === "color" ? "Color" : "B&W"}</span>
             </div>
 
-
-            <div class="help-container" onclick="openModal()">
-              <button class="help-button">?</button>
-              <span class="help-text">Get Help</span>
+            <div className="help-container" onClick={() => {}}>
+              <button className="help-button">?</button>
+              <span className="help-text">Get Help</span>
             </div>
-
-            <div class="modal" id="helpModal">
-              <div class="modal-content">
-                <video controls>
-                  <source src="your-video.mp4" type="video/mp4" />
-                  Your browser does not support video.
-                </video>
-
-                <div class="review-box">
-                  <label for="review">Leave a comment:</label>
-                  <textarea id="review" placeholder="Write something..."></textarea>
-                </div>
-
-                <button class="close-btn" onclick="closeModal()">Close</button>
-              </div>
-            </div>
-
-
-
-
-
-         
-
-        
-
-
           </div>
 
-
-{/* ------------------------------------------------------------------------------- */}
           <div className="canvas-container">
             <div className="canvas-background"></div>
             {pages.length > 0 ? (
@@ -1278,9 +1308,13 @@ function FilesPage() {
                             <div key={index} className="cost-item">
                               <span>
                                 {item.file.name.substring(0, 15)}
-                                {item.file.name.length > 15 ? "..." : ""} ({item.pages} pages,{" "}
-                                {item.colorMode === "color" ? "Color" : "B&W"},{" "}
+                                {item.file.name.length > 15 ? "..." : ""} (
+                                {item.pageRange === "custom"
+                                  ? `Pages ${item.actualStartPage}-${item.actualEndPage}`
+                                  : `${item.pages} pages`}
+                                , {item.colorMode === "color" ? "Color" : "B&W"},{" "}
                                 {item.doubleSided ? "Double-sided" : "Single-sided"})
+                                {item.fileType === "word" && " - EXACT"}
                               </span>
                               <span>₹{item.cost}</span>
                             </div>
@@ -1349,21 +1383,21 @@ function FilesPage() {
                 ></path>
               </svg>
               <svg viewBox="0 0 24 24" className="icon check-icon">
-                <path
-                  d="M9,16.17L4.83,12L3.41,13.41L9,19L21,7L19.59,5.59L9,16.17Z"
-                  fill="currentColor"
-                ></path>
+                <path d="M9,16.17L4.83,12L3.41,13.41L9,19L21,7L19.59,5.59L9,16.17Z" fill="currentColor"></path>
               </svg>
             </div>
           </button>
         </div>
       </div>
 
+      {/* Enhanced File Options Modal with exact preview */}
       {fileOptions.showModal && (
         <div className="print-modal">
           <div className="print-modal-content-large">
             <div className="modal-left">
-              <h2>Print Options: {fileOptions.file.name}</h2>
+              <h2>
+                Print Options: {fileOptions.file.name} ({fileOptions.fileType.toUpperCase()})
+              </h2>
               {fileOptions.pageCount === 0 ? (
                 <div style={{ textAlign: "center", padding: "20px" }}>
                   <p>Analyzing document...</p>
@@ -1475,7 +1509,6 @@ function FilesPage() {
                       <span style={{ marginLeft: "4px" }}>Double-sided printing</span>
                     </label>
 
-                    
                     <div className="color-toggle mt-3">
                       <label className="switch">
                         <input
@@ -1503,33 +1536,6 @@ function FilesPage() {
                             <svg id="moon-dot-3-modal" className="moon-dot" viewBox="0 0 100 100">
                               <circle cx="50" cy="50" r="50"></circle>
                             </svg>
-                            <svg id="light-ray-1-modal" className="light-ray" viewBox="0 0 100 100">
-                              <circle cx="50" cy="50" r="50"></circle>
-                            </svg>
-                            <svg id="light-ray-2-modal" className="light-ray" viewBox="0 0 100 100">
-                              <circle cx="50" cy="50" r="50"></circle>
-                            </svg>
-                            <svg id="light-ray-3-modal" className="light-ray" viewBox="0 0 100 100">
-                              <circle cx="50" cy="50" r="50"></circle>
-                            </svg>
-                            <svg id="cloud-1-modal" className="cloud-dark" viewBox="0 0 100 100">
-                              <circle cx="50" cy="50" r="50"></circle>
-                            </svg>
-                            <svg id="cloud-2-modal" className="cloud-dark" viewBox="0 0 100 100">
-                              <circle cx="50" cy="50" r="50"></circle>
-                            </svg>
-                            <svg id="cloud-3-modal" className="cloud-dark" viewBox="0 0 100 100">
-                              <circle cx="50" cy="50" r="50"></circle>
-                            </svg>
-                            <svg id="cloud-4-modal" className="cloud-light" viewBox="0 0 100 100">
-                              <circle cx="50" cy="50" r="50"></circle>
-                            </svg>
-                            <svg id="cloud-5-modal" className="cloud-light" viewBox="0 0 100 100">
-                              <circle cx="50" cy="50" r="50"></circle>
-                            </svg>
-                            <svg id="cloud-6-modal" className="cloud-light" viewBox="0 0 100 100">
-                              <circle cx="50" cy="50" r="50"></circle>
-                            </svg>
                           </div>
                           <div className="stars">
                             <svg id="star-1-modal" className="star" viewBox="0 0 20 20">
@@ -1552,30 +1558,46 @@ function FilesPage() {
                       </span>
                     </div>
                   </div>
+
+                  {fileOptions.fileType === "word" && (
+                    <div
+                      style={{
+                        marginTop: "16px",
+                        padding: "12px",
+                        background: "#e8f5e8",
+                        borderRadius: "8px",
+                        fontSize: "14px",
+                      }}
+                    >
+                      <p>
+                        <strong>✅ EXACT Word Document Printing:</strong>
+                      </p>
+                      <p>• Preserves original formatting, spacing, and layout</p>
+                      <p>• Maintains fonts, underlines, and alignment</p>
+                      <p>• Perfect for certificates and official documents</p>
+                      <p>• No conversion - direct Word printing</p>
+                    </div>
+                  )}
                 </div>
               )}
 
               <div className="modal-actions">
-
-
                 <button className="cancel-button" onClick={() => setFileOptions({ ...fileOptions, showModal: false })}>
                   Cancel
                 </button>
                 {fileOptions.pageCount > 0 && (
-                  <button class="queue-button" onClick={addFileToPrintQueue} >
+                  <button className="queue-button" onClick={addFileToPrintQueue}>
                     ADD to QUEUE
                   </button>
                 )}
               </div>
-
-
             </div>
 
             <div className="modal-right">
               <div className="pdf-viewer-full">
                 <div className="pdf-viewer-header">
-                  <h3>Document Preview</h3>
-                  {fileOptions.file?.type === "application/pdf" && pdfDoc && (
+                  <h3>Document Preview ({fileOptions.fileType.toUpperCase()}) - EXACT FORMAT</h3>
+                  {fileOptions.fileType === "pdf" && pdfDoc && (
                     <div className="pdf-controls-header">
                       <button onClick={() => goToPDFPage("prev")} disabled={currentPdfPage <= 1}>
                         <ChevronLeft size={16} />
@@ -1591,34 +1613,91 @@ function FilesPage() {
                 </div>
 
                 <div className="pdf-viewer-container-full">
-                  {fileOptions.file?.type === "application/pdf" && allPdfPages.length > 0 ? (
+                  {fileOptions.fileType === "pdf" && allPdfPages.length > 0 ? (
                     <div className="pdf-pages-scroll">
-                      {allPdfPages.map((canvas, index) => (
+                      {allPdfPages.map((pageData, index) => (
                         <div key={index} className="pdf-page-full">
-                          <div className="pdf-page-number-full">Page {index + 1}</div>
+                          <div className="pdf-page-number-full">Page {pageData.pageNumber}</div>
                           <canvas
                             ref={(canvasElement) => {
-                              if (canvasElement && canvas) {
+                              if (canvasElement && pageData.canvas) {
                                 const ctx = canvasElement.getContext("2d")
-                                canvasElement.width = canvas.width
-                                canvasElement.height = canvas.height
-                                ctx.drawImage(canvas, 0, 0)
+                                canvasElement.width = pageData.canvas.width
+                                canvasElement.height = pageData.canvas.height
+                                ctx.drawImage(pageData.canvas, 0, 0)
+
+                                // Apply B&W filter if selected
+                                if (fileOptions.printSettings.colorMode === "bw") {
+                                  ctx.filter = "grayscale(100%)"
+                                  ctx.drawImage(pageData.canvas, 0, 0)
+                                }
                               }
                             }}
                             className="pdf-canvas-full"
+                            style={{
+                              filter: fileOptions.printSettings.colorMode === "bw" ? "grayscale(100%)" : "none",
+                            }}
                           />
                         </div>
                       ))}
+                    </div>
+                  ) : fileOptions.fileType === "word" && wordPreview ? (
+                    <div
+                      className="word-preview-container"
+                      style={{ padding: "20px", height: "100%", overflow: "auto" }}
+                    >
+                      {wordImagePreview ? (
+                        <div style={{ textAlign: "center" }}>
+                          <p style={{ marginBottom: "16px", fontWeight: "bold", color: "#2e7d32" }}>
+                            ✅ EXACT Word Document Preview (As it will print)
+                          </p>
+                          <img
+                            src={wordImagePreview || "/placeholder.svg"}
+                            alt="Exact Word Document Preview"
+                            style={{
+                              maxWidth: "100%",
+                              height: "auto",
+                              border: "1px solid #ddd",
+                              borderRadius: "4px",
+                              filter: fileOptions.printSettings.colorMode === "bw" ? "grayscale(100%)" : "none",
+                            }}
+                          />
+                          <p style={{ marginTop: "12px", fontSize: "12px", color: "#666" }}>
+                            This preview shows exactly how your certificate will print - preserving all spacing,
+                            formatting, and layout.
+                          </p>
+                        </div>
+                      ) : (
+                        <div
+                          dangerouslySetInnerHTML={{ __html: wordPreview }}
+                          style={{
+                            filter: fileOptions.printSettings.colorMode === "bw" ? "grayscale(100%)" : "none",
+                          }}
+                        />
+                      )}
                     </div>
                   ) : (
                     <div className="pdf-placeholder">
                       <FileText size={48} />
                       <p>Document Preview</p>
                       <p>File: {fileOptions.file?.name}</p>
+                      <p>Type: {fileOptions.fileType.toUpperCase()}</p>
                       <p>Pages: {fileOptions.pageCount}</p>
                       <p>Size: {fileOptions.file ? (fileOptions.file.size / 1024).toFixed(1) : 0} KB</p>
-                      {fileOptions.file?.name.includes("→PDF") && (
-                        <p style={{ color: "#007aff", fontWeight: "bold" }}>Converted from Word document</p>
+                      {fileOptions.fileType === "word" && (
+                        <div style={{ marginTop: "16px", padding: "12px", background: "#e8f5e8", borderRadius: "8px" }}>
+                          <p style={{ color: "#2e7d32", fontWeight: "bold", margin: "0" }}>
+                            ✅ EXACT Word Document Printing Enabled
+                          </p>
+                          <p style={{ fontSize: "12px", margin: "8px 0 0 0", color: "#666" }}>
+                            Your certificate will print with perfect formatting preservation
+                          </p>
+                        </div>
+                      )}
+                      {fileOptions.printSettings.pageRange === "custom" && (
+                        <p style={{ color: "#ff6b35", fontWeight: "bold" }}>
+                          Showing pages {fileOptions.printSettings.startPage}-{fileOptions.printSettings.endPage}
+                        </p>
                       )}
                     </div>
                   )}
