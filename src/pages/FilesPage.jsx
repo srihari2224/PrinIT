@@ -72,29 +72,42 @@ function FilesPage() {
   // Initialize PDF.js and Mammoth.js
   useEffect(() => {
     const loadLibraries = async () => {
-      // Load PDF.js
-      if (!window.pdfjsLib) {
-        const script = document.createElement("script")
-        script.src = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"
-        script.onload = () => {
-          window.pdfjsLib.GlobalWorkerOptions.workerSrc =
-            "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js"
+      try {
+        // Load PDF.js
+        if (!window.pdfjsLib) {
+          console.log("Loading PDF.js...")
+          const script = document.createElement("script")
+          script.src = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"
+          script.onload = () => {
+            window.pdfjsLib.GlobalWorkerOptions.workerSrc =
+              "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js"
+            console.log("PDF.js loaded successfully")
+          }
+          script.onerror = () => console.error("Failed to load PDF.js")
+          document.head.appendChild(script)
         }
-        document.head.appendChild(script)
-      }
 
-      // Load Mammoth.js for Word documents
-      if (!window.mammoth) {
-        const mammothScript = document.createElement("script")
-        mammothScript.src = "https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.4.2/mammoth.browser.min.js"
-        document.head.appendChild(mammothScript)
-      }
+        // Load Mammoth.js for Word documents
+        if (!window.mammoth) {
+          console.log("Loading Mammoth.js...")
+          const mammothScript = document.createElement("script")
+          mammothScript.src = "https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.4.2/mammoth.browser.min.js"
+          mammothScript.onload = () => console.log("Mammoth.js loaded successfully")
+          mammothScript.onerror = () => console.error("Failed to load Mammoth.js")
+          document.head.appendChild(mammothScript)
+        }
 
-      // Load html2canvas for exact Word document rendering
-      if (!window.html2canvas) {
-        const html2canvasScript = document.createElement("script")
-        html2canvasScript.src = "https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"
-        document.head.appendChild(html2canvasScript)
+        // Load html2canvas for exact Word document rendering
+        if (!window.html2canvas) {
+          console.log("Loading html2canvas...")
+          const html2canvasScript = document.createElement("script")
+          html2canvasScript.src = "https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"
+          html2canvasScript.onload = () => console.log("html2canvas loaded successfully")
+          html2canvasScript.onerror = () => console.error("Failed to load html2canvas")
+          document.head.appendChild(html2canvasScript)
+        }
+      } catch (error) {
+        console.error("Error loading libraries:", error)
       }
     }
     loadLibraries()
@@ -1612,69 +1625,27 @@ function FilesPage() {
                   )}
                 </div>
 
-                <div className="pdf-viewer-container-full">
-                  {fileOptions.fileType === "pdf" && allPdfPages.length > 0 ? (
-                    <div className="pdf-pages-scroll">
-                      {allPdfPages.map((pageData, index) => (
-                        <div key={index} className="pdf-page-full">
-                          <div className="pdf-page-number-full">Page {pageData.pageNumber}</div>
-                          <canvas
-                            ref={(canvasElement) => {
-                              if (canvasElement && pageData.canvas) {
-                                const ctx = canvasElement.getContext("2d")
-                                canvasElement.width = pageData.canvas.width
-                                canvasElement.height = pageData.canvas.height
-                                ctx.drawImage(pageData.canvas, 0, 0)
-
-                                // Apply B&W filter if selected
-                                if (fileOptions.printSettings.colorMode === "bw") {
-                                  ctx.filter = "grayscale(100%)"
-                                  ctx.drawImage(pageData.canvas, 0, 0)
-                                }
-                              }
-                            }}
-                            className="pdf-canvas-full"
-                            style={{
-                              filter: fileOptions.printSettings.colorMode === "bw" ? "grayscale(100%)" : "none",
-                            }}
-                          />
-                        </div>
-                      ))}
+                <div className="pdf-viewer-container-full" style={{ height: "100vh", padding: 0, margin: 0 }}>
+                  {fileOptions.fileType === "pdf" && fileOptions.file ? (
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", height: "100%", justifyContent: "center" }}>
+                      <embed
+                        src={fileOptions.file ? URL.createObjectURL(fileOptions.file) : ""}
+                        type="application/pdf"
+                        style={{ width: "100%", height: "100vh", borderRadius: "8px", boxShadow: "0 2px 8px rgba(0,0,0,0.08)" }}
+                      />
                     </div>
-                  ) : fileOptions.fileType === "word" && wordPreview ? (
-                    <div
-                      className="word-preview-container"
-                      style={{ padding: "20px", height: "100%", overflow: "auto" }}
-                    >
-                      {wordImagePreview ? (
-                        <div style={{ textAlign: "center" }}>
-                          <p style={{ marginBottom: "16px", fontWeight: "bold", color: "#2e7d32" }}>
-                            ✅ EXACT Word Document Preview (As it will print)
-                          </p>
-                          <img
-                            src={wordImagePreview || "/placeholder.svg"}
-                            alt="Exact Word Document Preview"
-                            style={{
-                              maxWidth: "100%",
-                              height: "auto",
-                              border: "1px solid #ddd",
-                              borderRadius: "4px",
-                              filter: fileOptions.printSettings.colorMode === "bw" ? "grayscale(100%)" : "none",
-                            }}
-                          />
-                          <p style={{ marginTop: "12px", fontSize: "12px", color: "#666" }}>
-                            This preview shows exactly how your certificate will print - preserving all spacing,
-                            formatting, and layout.
-                          </p>
-                        </div>
-                      ) : (
-                        <div
-                          dangerouslySetInnerHTML={{ __html: wordPreview }}
-                          style={{
-                            filter: fileOptions.printSettings.colorMode === "bw" ? "grayscale(100%)" : "none",
-                          }}
-                        />
-                      )}
+                  ) : fileOptions.fileType === "word" && fileOptions.file ? (
+                    <div style={{ width: "100%", height: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+                      {/* TODO: Replace 'publicUrl' with the actual public URL of the uploaded Word file */}
+                      <iframe
+                        src={`https://docs.google.com/gview?url=${encodeURIComponent('PUBLIC_WORD_DOC_URL_HERE')}&embedded=true`}
+                        style={{ width: "100%", height: "100vh", border: "none" }}
+                        frameBorder="0"
+                        title="Word Document Preview"
+                      />
+                      <div style={{ color: '#b71c1c', marginTop: '12px', fontSize: '14px', textAlign: 'center' }}>
+                        If the document does not preview, please download and open in Microsoft Word or Google Docs.
+                      </div>
                     </div>
                   ) : (
                     <div className="pdf-placeholder">
@@ -1684,16 +1655,6 @@ function FilesPage() {
                       <p>Type: {fileOptions.fileType.toUpperCase()}</p>
                       <p>Pages: {fileOptions.pageCount}</p>
                       <p>Size: {fileOptions.file ? (fileOptions.file.size / 1024).toFixed(1) : 0} KB</p>
-                      {fileOptions.fileType === "word" && (
-                        <div style={{ marginTop: "16px", padding: "12px", background: "#e8f5e8", borderRadius: "8px" }}>
-                          <p style={{ color: "#2e7d32", fontWeight: "bold", margin: "0" }}>
-                            ✅ EXACT Word Document Printing Enabled
-                          </p>
-                          <p style={{ fontSize: "12px", margin: "8px 0 0 0", color: "#666" }}>
-                            Your certificate will print with perfect formatting preservation
-                          </p>
-                        </div>
-                      )}
                       {fileOptions.printSettings.pageRange === "custom" && (
                         <p style={{ color: "#ff6b35", fontWeight: "bold" }}>
                           Showing pages {fileOptions.printSettings.startPage}-{fileOptions.printSettings.endPage}
