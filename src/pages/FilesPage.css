@@ -521,7 +521,9 @@ body {
   border-radius: 24px;
 }
 
-.Add-button, .button__icon, .button__text {
+.Add-button,
+.button__icon,
+.button__text {
   transition: all 0.3s;
 }
 
@@ -547,13 +549,12 @@ body {
   stroke: #fff;
 }
 
-.Add-button:hover  {
+.Add-button:hover {
   background: #34974d;
 }
-.Add-button:hover .button__icon{
+.Add-button:hover .button__icon {
   border-radius: 24px;
 }
-
 
 .Add-button:hover .button__text {
   color: transparent;
@@ -574,61 +575,59 @@ body {
 
 /* -------------------------------duplicate------------------------------------ */
 /* From uiverse.io by @Ali-Tahmazi99 */
-.Duplicate{
- display: inline-block;
- width: 150px;
- height: 50px;
- border-radius: 10px;
- border: 1px solid #03045e;
- position: relative;
- overflow: hidden;
- transition: all 0.5s ease-in;
- z-index: 1;
- background-color:rgb(255, 255, 255);
- border-radius: 24px;
-
+.Duplicate {
+  display: inline-block;
+  width: 150px;
+  height: 50px;
+  border-radius: 10px;
+  border: 1px solid #03045e;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.5s ease-in;
+  z-index: 1;
+  background-color: rgb(255, 255, 255);
+  border-radius: 24px;
 }
 
 .Duplicate::before,
 .Duplicate::after {
- content: '';
- position: absolute;
- top: 0;
- width: 0;
- height: 100%;
- transform: skew(15deg);
- transition: all 0.5s;
- overflow: hidden;
- z-index: -1;
- 
+  content: "";
+  position: absolute;
+  top: 0;
+  width: 0;
+  height: 100%;
+  transform: skew(15deg);
+  transition: all 0.5s;
+  overflow: hidden;
+  z-index: -1;
 }
 
 .Duplicate::before {
- left: -10px;
- background: #240046;
+  left: -10px;
+  background: #240046;
 }
 
 .Duplicate::after {
- right: -10px;
- background: #5a189a;
+  right: -10px;
+  background: #5a189a;
 }
 
 .Duplicate:hover::before,
 .Duplicate:hover::after {
- width: 58%;
+  width: 58%;
 }
 
 .Duplicate:hover span {
- color: #e0aaff;
- transition: 0.3s;
+  color: #e0aaff;
+  transition: 0.3s;
 }
 
 .Duplicate span {
- color: #03045e;
- font-size: 16px;
- transition: all 0.3s ease-in;
- font-size:16px;
- font-weight: 600px;
+  color: #03045e;
+  font-size: 16px;
+  transition: all 0.3s ease-in;
+  font-size: 16px;
+  font-weight: 600px;
 }
 
 /* ------------------------------------------delete boton--------------------------------------- */
@@ -1019,90 +1018,86 @@ body {
 /* ------------------------------------------------get help----------------- */
 
 .help-container {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      cursor: pointer;
-      margin-left:950px;
-    }
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  margin-left: 950px;
+}
 
-    .help-button {
-      background-color: #000000;
-      color: #ffffff;
-      border: none;
-      border-radius: 50%;
-      width: 3rem;
-      height: 3rem;
-      font-weight: bold;
-      font-size: 1.5rem;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-    }
+.help-button {
+  background-color: #000000;
+  color: #ffffff;
+  border: none;
+  border-radius: 50%;
+  width: 3rem;
+  height: 3rem;
+  font-weight: bold;
+  font-size: 1.5rem;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
 
-    .help-button:hover {
-      background-color: #000000;
-    }
+.help-button:hover {
+  background-color: #000000;
+}
 
-    .help-text {
-      font-size: 1rem;
-      color: #292524;
-      font-weight: 500;
-    }
+.help-text {
+  font-size: 1rem;
+  color: #292524;
+  font-weight: 500;
+}
 
-    /* Modal Styles */
-    .modal {
-      display: none;
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.5);
-      justify-content: center;
-      align-items: center;
-      z-index: 1000;
-    }
+/* Modal Styles */
+.modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
 
-    .modal-content {
-      background: rgb(255, 255, 255);
-      padding: 1rem;
-      border-radius: 10px;
-      width: 90%;
-      max-width: 500px;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.3);
-    }
+.modal-content {
+  background: rgb(255, 255, 255);
+  padding: 1rem;
+  border-radius: 10px;
+  width: 90%;
+  max-width: 500px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+}
 
-    .modal video {
-      width: 100%;
-      border-radius: 8px;
-    }
+.modal video {
+  width: 100%;
+  border-radius: 8px;
+}
 
-    .review-box {
-      margin-top: 1rem;
-    }
+.review-box {
+  margin-top: 1rem;
+}
 
-    .review-box textarea {
-      width: 100%;
-      height: 80px;
-      padding: 0.5rem;
-      border-radius: 5px;
-      border: 1px solid #ccc;
-      resize: none;
-    }
+.review-box textarea {
+  width: 100%;
+  height: 80px;
+  padding: 0.5rem;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+  resize: none;
+}
 
-    .close-btn {
-      margin-top: 1rem;
-      background: #292524;
-      color: white;
-      padding: 0.5rem 1rem;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-    }
+.close-btn {
+  margin-top: 1rem;
+  background: #292524;
+  color: white;
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
 
-    .close-btn:hover {
-      background: #44403c;
-    }
-
-
-
-
+.close-btn:hover {
+  background: #44403c;
+}
 
 /* -------------------------------------------------canvas------------------------ */
 
@@ -1193,7 +1188,61 @@ body {
 }
 
 .a4-canvas.bw {
-  filter: grayscale(100%);
+  filter: grayscale(100%) !important;
+}
+
+.a4-canvas.bw * {
+  filter: grayscale(100%) !important;
+}
+
+.a4-canvas.bw img {
+  filter: grayscale(100%) !important;
+}
+
+/* Ensure canvas items respect boundaries */
+.canvas-item {
+  position: absolute;
+  cursor: move;
+  border: 2px solid transparent;
+  overflow: hidden;
+  user-select: none;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  /* Prevent overflow outside canvas */
+  contain: layout;
+  /* Ensure items stay within canvas bounds */
+  max-width: calc(100% - 4px);
+  max-height: calc(100% - 4px);
+}
+
+/* Visual indicator for canvas boundaries */
+.a4-canvas::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border: 1px dashed rgba(0, 0, 0, 0.1);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.canvas-item {
+  z-index: 1;
+}
+
+.canvas-item {
+  position: absolute;
+  cursor: move;
+  border: 2px solid transparent;
+  overflow: hidden;
+  user-select: none;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  /* Ensure items stay within canvas bounds */
+  max-width: calc(100% - 4px);
+  max-height: calc(100% - 4px);
 }
 
 /* Canvas items */
@@ -1205,6 +1254,8 @@ body {
   user-select: none;
   border-radius: 6px;
   transition: all 0.2s ease;
+  /* Prevent overflow outside canvas */
+  contain: layout;
 }
 
 .canvas-item:hover {
@@ -1485,9 +1536,9 @@ body {
   cursor: pointer;
   position: relative;
   user-select: none;
-  margin-top:50px;
-  margin-left:30px;
-  margin-right:50px;
+  margin-top: 50px;
+  margin-left: 30px;
+  margin-right: 50px;
   margin-bottom: 50px;
 }
 
@@ -1517,10 +1568,6 @@ body {
   border-left-color: transparent;
   border-radius: 0;
 }
-
-
-
-
 
 .cost-summary {
   margin-top: 20px;
@@ -1654,7 +1701,7 @@ body {
   align-items: center;
   gap: 10px;
   transition: all 0.3s ease;
-  width:360px;
+  width: 360px;
   text-align: center;
 }
 
@@ -1663,7 +1710,7 @@ body {
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4);
 }
 
-.btn-text{
+.btn-text {
   margin-left: 110px;
 }
 
@@ -1779,7 +1826,6 @@ body {
   }
 }
 
-
 /* Print modal - Apple style */
 .print-modal {
   position: fixed;
@@ -1827,23 +1873,23 @@ body {
 .modal-actions {
   display: flex;
   justify-content: flex;
-  
+
   margin-top: 32px;
 }
 
-.cancel-button{
+.cancel-button {
   background-color: red;
-  width:100px;
-  height:70px;
-  border-radius:16px;
-  margin-right:50px;
-  font-weight:600px;
+  width: 100px;
+  height: 70px;
+  border-radius: 16px;
+  margin-right: 50px;
+  font-weight: 600px;
 }
 
 /* ----------------------------------------queue------------------------------- */
 
 .queue-button {
-  border-radius:24px;
+  border-radius: 24px;
   /* --border-width: 4px; */
   appearance: none;
   position: relative;
@@ -1856,8 +1902,7 @@ body {
   color: #ffffff;
   z-index: 2;
   box-sizing: border-box;
-  height:70px;
-
+  height: 70px;
 }
 
 /* .queue-button::after {
@@ -1907,10 +1952,6 @@ body {
   }
 } */
 /* ----------------------------------------------------------------- */
-
-
-
-
 
 /* Add styles for resize handles - Apple style */
 .resize-handle {

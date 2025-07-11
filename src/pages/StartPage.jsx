@@ -1,7 +1,8 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
+import VideoModal from "../components/VideoModal"
 import "./StartPage.css"
 
 // Import all images
@@ -16,6 +17,21 @@ function StartPage() {
   const navigate = useNavigate()
   const [showPolicyModal, setShowPolicyModal] = useState(false)
   const [modalContent, setModalContent] = useState({ title: "", content: "" })
+  const [showVideoModal, setShowVideoModal] = useState(false)
+
+  // Auto-play video when component mounts (every time user visits start page)
+  useEffect(() => {
+    // Small delay to ensure page is fully loaded
+    const timer = setTimeout(() => {
+      setShowVideoModal(true)
+    }, 500)
+
+    return () => clearTimeout(timer)
+  }, [])
+
+  const handleCloseVideo = () => {
+    setShowVideoModal(false)
+  }
 
   const handlePolicyClick = (type) => {
     let content = {}
@@ -146,32 +162,37 @@ function StartPage() {
 
       <div className="subject">
         <div className="left"></div>
-        <div className="right" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+        <div
+          className="right"
+          style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%" }}
+        >
           <a
             href="https://www.ilovepdf.com/word_to_pdf"
             target="_blank"
             rel="noopener noreferrer"
             style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: '100%',
-              height: '100%',
-              background: 'linear-gradient(135deg, #e53935 0%, #ffb300 100%)',
-              color: '#fff',
-              fontSize: '2rem',
-              borderRadius: '18px',
-              textDecoration: 'none',
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              width: "100%",
+              height: "100%",
+              background: "linear-gradient(135deg, #e53935 0%, #ffb300 100%)",
+              color: "#fff",
+              fontSize: "2rem",
+              borderRadius: "18px",
+              textDecoration: "none",
               fontWeight: 700,
-              boxShadow: '0 4px 24px rgba(0,0,0,0.10)',
-              transition: 'background 0.2s',
-              textAlign: 'center',
-              letterSpacing: '0.5px',
-              border: 'none',
-              cursor: 'pointer',
+              boxShadow: "0 4px 24px rgba(0,0,0,0.10)",
+              transition: "background 0.2s",
+              textAlign: "center",
+              letterSpacing: "0.5px",
+              border: "none",
+              cursor: "pointer",
             }}
-            onMouseOver={e => e.currentTarget.style.background = 'linear-gradient(135deg, #d32f2f 0%, #ffa000 100%)'}
-            onMouseOut={e => e.currentTarget.style.background = 'linear-gradient(135deg, #e53935 0%, #ffb300 100%)'}
+            onMouseOver={(e) =>
+              (e.currentTarget.style.background = "linear-gradient(135deg, #d32f2f 0%, #ffa000 100%)")
+            }
+            onMouseOut={(e) => (e.currentTarget.style.background = "linear-gradient(135deg, #e53935 0%, #ffb300 100%)")}
           >
             Start using iLovePDF!
           </a>
@@ -240,6 +261,9 @@ function StartPage() {
           <p>&copy; 2025 PrinIT. All rights reserved.</p>
         </div>
       </footer>
+
+      {/* Video Advertisement Modal */}
+      <VideoModal isOpen={showVideoModal} onClose={handleCloseVideo} autoPlay={true} />
 
       {/* Policy Modal */}
       {showPolicyModal && (

@@ -56,6 +56,31 @@ function PaymentPage() {
     }
   }, [])
 
+  // Enhanced print queue monitoring
+  useEffect(() => {
+    if (window.require && paymentStatus === "processing") {
+      const { ipcRenderer } = window.require("electron")
+
+      // Monitor print queue status
+      const checkPrintQueue = async () => {
+        try {
+          const queueStatus = await ipcRenderer.invoke("check-print-queue")
+          if (queueStatus.success && queueStatus.jobs.length > 0) {
+            setPrintProgress(`Print jobs in queue: ${queueStatus.jobs.length} items`)
+          }
+        } catch (error) {
+          console.error("Error checking print queue:", error)
+        }
+      }
+
+      const queueInterval = setInterval(checkPrintQueue, 3000)
+
+      return () => {
+        clearInterval(queueInterval)
+      }
+    }
+  }, [paymentStatus])
+
   const handlePayment = () => {
     console.log("💳 PAYMENT INITIATED...")
     console.log("Total cost:", totalCost)
@@ -111,10 +136,10 @@ function PaymentPage() {
     }
   }
 
-  // Main printing function
+  // Enhanced printing function with proper dialog integration
   const handlePrinting = async () => {
     setIsPrinting(true)
-    console.log("🚀 STARTING DIRECT PRINTING...")
+    console.log("🚀 STARTING ENHANCED PRINTING WITH DIALOGS...")
 
     try {
       let totalItemsPrinted = 0
@@ -124,72 +149,73 @@ function PaymentPage() {
       console.log(`📊 CANVAS PAGES TO PRINT: ${totalCanvasPages}`)
       console.log(`📊 PDF ITEMS TO PRINT: ${totalPDFItems}`)
 
-      // STEP 1: Print Canvas Pages
+      // STEP 1: Print Canvas Pages with enhanced settings
       if (pages && pages.length > 0) {
-        console.log(`🎨 PRINTING ${pages.length} CANVAS PAGES...`)
-        setPrintProgress(`Starting to print ${pages.length} canvas pages...`)
+        console.log(`🎨 PRINTING ${pages.length} CANVAS PAGES WITH DIALOGS...`)
+        setPrintProgress(`Preparing ${pages.length} canvas pages for printing...`)
 
         for (let i = 0; i < pages.length; i++) {
           const page = pages[i]
-          console.log(`🎨 Processing Canvas Page ${page.id}...`)
-          setPrintProgress(`Printing canvas page ${i + 1} of ${pages.length}...`)
+          console.log(`🎨 Processing Canvas Page ${page.id} with enhanced printing...`)
+          setPrintProgress(`Showing print dialog for canvas page ${i + 1} of ${pages.length}...`)
 
           try {
             const canvasHTML = generateCanvasPageHTML(page, i + 1)
-            await printCanvasPage(canvasHTML, `Canvas Page ${page.id}`)
+            await printCanvasPageWithEnhancedSettings(canvasHTML, `Canvas Page ${page.id}`, page)
             totalItemsPrinted++
 
-            console.log(`✅ Canvas page ${page.id} sent to print`)
-            setPrintProgress(`Canvas page ${i + 1} sent to Windows Print Queue!`)
+            console.log(`✅ Canvas page ${page.id} print dialog shown`)
+            setPrintProgress(`Canvas page ${i + 1} print dialog completed!`)
 
-            // Short delay between pages
-            await new Promise((resolve) => setTimeout(resolve, 1000))
+            // Delay between pages for dialog handling
+            await new Promise((resolve) => setTimeout(resolve, 3000))
           } catch (error) {
             console.error(`❌ Error printing canvas page ${page.id}:`, error)
-            setPrintProgress(`Error printing canvas page ${page.id}: ${error.message}`)
+            setPrintProgress(`Error with canvas page ${page.id}: ${error.message}`)
           }
         }
       }
 
-      // STEP 2: Print PDF Queue Items
+      // STEP 2: Print PDF Queue Items with enhanced settings
       if (printQueue && printQueue.length > 0) {
-        console.log(`📄 PRINTING ${printQueue.length} PDF ITEMS...`)
-        setPrintProgress(`Starting to print ${printQueue.length} PDF documents...`)
+        console.log(`📄 PRINTING ${printQueue.length} PDF ITEMS WITH ENHANCED DIALOGS...`)
+        setPrintProgress(`Preparing ${printQueue.length} PDF documents for printing...`)
 
         for (let i = 0; i < printQueue.length; i++) {
           const pdfItem = printQueue[i]
-          console.log(`📄 Processing PDF: ${pdfItem.fileName}`)
-          setPrintProgress(`Printing PDF ${i + 1} of ${printQueue.length}: ${pdfItem.fileName}...`)
+          console.log(`📄 Processing PDF: ${pdfItem.fileName} with enhanced printing`)
+          console.log(`📄 PDF Settings:`, pdfItem.printSettings)
+          setPrintProgress(`Showing print dialog for PDF ${i + 1} of ${printQueue.length}: ${pdfItem.fileName}...`)
 
           try {
-            await printPDF(pdfItem)
+            await printPDFWithEnhancedSettings(pdfItem)
             totalItemsPrinted++
 
-            console.log(`✅ PDF ${pdfItem.fileName} sent to print`)
-            setPrintProgress(`PDF ${pdfItem.fileName} sent to Windows Print Queue!`)
+            console.log(`✅ PDF ${pdfItem.fileName} print dialog shown with settings`)
+            setPrintProgress(`PDF ${pdfItem.fileName} print dialog completed with settings!`)
 
-            // Short delay between PDFs
-            await new Promise((resolve) => setTimeout(resolve, 2000))
+            // Delay between PDFs for dialog handling
+            await new Promise((resolve) => setTimeout(resolve, 4000))
           } catch (error) {
             console.error(`❌ Error printing PDF ${pdfItem.fileName}:`, error)
-            setPrintProgress(`Error printing PDF ${pdfItem.fileName} to print queue: ${error.message}`)
+            setPrintProgress(`Error with PDF ${pdfItem.fileName}: ${error.message}`)
           }
         }
       }
 
       // SUCCESS
-      console.log(`🎉 PRINTING COMPLETED! ${totalItemsPrinted} items sent to print`)
-      setPrintProgress(`All ${totalItemsPrinted} items sent to Windows Print Queue! Check your print queue now.`)
+      console.log(`🎉 ENHANCED PRINTING COMPLETED! ${totalItemsPrinted} items processed`)
+      setPrintProgress(`All ${totalItemsPrinted} items processed with print dialogs and user settings!`)
 
       setTimeout(() => {
         setPaymentStatus("success")
         startCountdown()
-      }, 2000)
+      }, 3000)
     } catch (error) {
-      console.error("❌ CRITICAL PRINTING ERROR:", error)
-      setPrintProgress(`Printing failed: ${error.message}`)
+      console.error("❌ CRITICAL ENHANCED PRINTING ERROR:", error)
+      setPrintProgress(`Enhanced printing failed: ${error.message}`)
       alert(
-        `❌ Printing failed: ${error.message}\n\nPlease check:\n1. Printer is connected\n2. Printer has paper\n3. Printer is turned on`,
+        `❌ Enhanced printing failed: ${error.message}\n\nPlease check:\n1. Printer is connected\n2. Printer has paper\n3. Printer is turned on\n4. Print dialogs are being handled`,
       )
       setPaymentStatus("pending")
     } finally {
@@ -197,24 +223,24 @@ function PaymentPage() {
     }
   }
 
-  // Generate Canvas Page HTML for printing
+  // Generate Canvas Page HTML for printing - CLEAN VERSION WITHOUT EXTRA TEXT
   const generateCanvasPageHTML = (page, pageNumber) => {
-    const colorClass = page.colorMode === "bw" ? "bw-filter" : "color-filter"
+    const colorFilter = page.colorMode === "bw" ? "filter: grayscale(100%);" : ""
 
     let itemsHTML = ""
     if (page.items && page.items.length > 0) {
       page.items.forEach((item, index) => {
         try {
           const fileURL = URL.createObjectURL(item.file)
-          // Convert canvas pixels to A4 millimeters
+          // Convert canvas pixels to A4 millimeters with proper scaling
           const xMM = (item.x / 743.75) * 210 // A4 width = 210mm
           const yMM = (item.y / 1052.5) * 297 // A4 height = 297mm
           const widthMM = (item.width / 743.75) * 210
           const heightMM = (item.height / 1052.5) * 297
 
           itemsHTML += `
-          <div style="position: absolute; left: ${xMM}mm; top: ${yMM}mm; width: ${widthMM}mm; height: ${heightMM}mm; transform: rotate(${item.rotation || 0}deg); overflow: hidden;">
-            <img src="${fileURL}" style="width: 100%; height: 100%; object-fit: contain;" alt="Canvas Item ${index + 1}" />
+          <div style="position: absolute; left: ${xMM}mm; top: ${yMM}mm; width: ${widthMM}mm; height: ${heightMM}mm; transform: rotate(${item.rotation || 0}deg); overflow: hidden; ${colorFilter}">
+            <img src="${fileURL}" style="width: 100%; height: 100%; object-fit: contain;" alt="" />
           </div>
         `
         } catch (error) {
@@ -227,7 +253,7 @@ function PaymentPage() {
     <!DOCTYPE html>
     <html>
     <head>
-      <title>PrinIT Canvas Page ${pageNumber}</title>
+      <title>Canvas Print</title>
       <style>
         @page { 
           size: A4; 
@@ -249,51 +275,72 @@ function PaymentPage() {
           background: white; 
           position: relative; 
           overflow: hidden;
-          font-family: Arial, sans-serif;
-        }
-        .bw-filter { filter: grayscale(100%); }
-        .color-filter { filter: none; }
-        .page-info {
-          position: absolute;
-          bottom: 5mm;
-          right: 5mm;
-          font-size: 8pt;
-          color: #666;
+          ${colorFilter}
         }
       </style>
     </head>
-    <body class="${colorClass}">
+    <body>
       ${itemsHTML}
-      <div class="page-info">PrinIT Canvas Page ${pageNumber}</div>
     </body>
     </html>
   `
   }
 
-  // Print Canvas Page (HTML content)
-  const printCanvasPage = async (htmlContent, description) => {
-    console.log(`🖨️ PRINTING CANVAS: ${description}`)
+  // Print Canvas Page with user settings - ENFORCES COLOR/BW MODE
+  const printCanvasPageWithSettings = async (htmlContent, description, pageSettings) => {
+    console.log(`🖨️ PRINTING CANVAS WITH SETTINGS: ${description}`)
+    console.log(`🎨 Canvas Settings:`, pageSettings)
 
     try {
       if (window.require) {
+        // Electron - Send to main process with settings
         const { ipcRenderer } = window.require("electron")
-        // Send HTML content to Electron main process for printing
-        ipcRenderer.send("silent-print-html", htmlContent)
-        console.log(`✅ CANVAS SENT TO ELECTRON PRINTER: ${description}`)
-        // Wait for a short period for the IPC message to be processed
+
+        const printConfig = {
+          htmlContent: htmlContent,
+          settings: {
+            colorMode: pageSettings.colorMode,
+            copies: 1, // Canvas pages are always 1 copy
+            description: description,
+          },
+        }
+
+        ipcRenderer.send("silent-print-html-with-settings", printConfig)
+        console.log(`✅ CANVAS SENT TO ELECTRON WITH SETTINGS: ${description}`)
         await new Promise((resolve) => setTimeout(resolve, 500))
       } else {
-        console.log(`🌐 WEB FALLBACK FOR CANVAS: ${description}`)
-        // Web fallback - open print dialog (will appear in browser if not Electron)
-        const printWindow = window.open("", "_blank", "width=794,height=1123")
-        if (printWindow) {
-          printWindow.document.write(htmlContent)
-          printWindow.document.close()
-          setTimeout(() => {
-            printWindow.print()
-            setTimeout(() => printWindow.close(), 2000)
-          }, 1000)
-        }
+        // Web - Create custom print with settings applied
+        console.log(`🌐 WEB PRINT WITH SETTINGS FOR CANVAS: ${description}`)
+
+        // Create hidden iframe for printing with settings
+        const iframe = document.createElement("iframe")
+        iframe.style.position = "absolute"
+        iframe.style.left = "-9999px"
+        iframe.style.top = "-9999px"
+        iframe.style.width = "1px"
+        iframe.style.height = "1px"
+        document.body.appendChild(iframe)
+
+        const iframeDoc = iframe.contentDocument || iframe.contentWindow.document
+        iframeDoc.open()
+        iframeDoc.write(htmlContent)
+        iframeDoc.close()
+
+        // Wait for content to load then print
+        setTimeout(() => {
+          try {
+            iframe.contentWindow.focus()
+            iframe.contentWindow.print()
+
+            // Clean up after printing
+            setTimeout(() => {
+              document.body.removeChild(iframe)
+            }, 2000)
+          } catch (printError) {
+            console.error("Canvas print error:", printError)
+            document.body.removeChild(iframe)
+          }
+        }, 1000)
       }
     } catch (error) {
       console.error(`❌ CANVAS PRINT ERROR for ${description}:`, error)
@@ -301,38 +348,225 @@ function PaymentPage() {
     }
   }
 
-  // Print PDF
-  const printPDF = async (pdfItem) => {
-    console.log(`📄 PRINTING PDF: ${pdfItem.fileName}`)
+  // Print PDF with user's pre-configured settings - ENFORCES ALL USER OPTIONS
+  const printPDFWithUserSettings = async (pdfItem) => {
+    console.log(`📄 PRINTING PDF WITH USER SETTINGS: ${pdfItem.fileName}`)
+    console.log(`📄 User Settings:`, pdfItem.printSettings)
 
     try {
       if (window.require) {
+        // Electron - Use enhanced PDF printing with all settings
         const { ipcRenderer } = window.require("electron")
-
-        // Convert PDF file to array buffer
         const pdfData = await pdfItem.file.arrayBuffer()
 
-        // Send PDF data to Electron main process for native printing
-        const result = await ipcRenderer.invoke("print-pdf-native", Array.from(new Uint8Array(pdfData)))
+        const printConfig = {
+          pdfData: Array.from(new Uint8Array(pdfData)),
+          settings: pdfItem.printSettings,
+          fileName: pdfItem.fileName,
+          totalPages: pdfItem.totalPages,
+          pagesToPrint: pdfItem.pagesToPrint,
+        }
+
+        const result = await ipcRenderer.invoke("print-pdf-with-full-settings", printConfig)
 
         if (result.success) {
-          console.log(`✅ PDF ${pdfItem.fileName} sent to native printer`)
+          console.log(`✅ PDF ${pdfItem.fileName} printed with all user settings`)
         } else {
           throw new Error(result.error)
         }
       } else {
-        console.log(`🌐 WEB FALLBACK FOR PDF: ${pdfItem.fileName}`)
-        // Web fallback - open PDF in new window for printing
+        // Web - Enhanced PDF printing with settings simulation
+        console.log(`🌐 WEB PDF PRINT WITH SETTINGS: ${pdfItem.fileName}`)
+
         const pdfUrl = URL.createObjectURL(pdfItem.file)
-        const printWindow = window.open(pdfUrl, "_blank")
-        if (printWindow) {
-          setTimeout(() => {
-            printWindow.print()
-          }, 2000)
+
+        // Create multiple print jobs based on copies
+        for (let copy = 1; copy <= pdfItem.printSettings.copies; copy++) {
+          console.log(`📄 Printing copy ${copy} of ${pdfItem.printSettings.copies}`)
+
+          const iframe = document.createElement("iframe")
+          iframe.style.position = "absolute"
+          iframe.style.left = "-9999px"
+          iframe.style.top = "-9999px"
+          iframe.style.width = "1px"
+          iframe.style.height = "1px"
+          iframe.src = pdfUrl
+          document.body.appendChild(iframe)
+
+          // Apply color settings via CSS if possible
+          if (pdfItem.printSettings.colorMode === "bw") {
+            iframe.style.filter = "grayscale(100%)"
+          }
+
+          iframe.onload = () => {
+            setTimeout(() => {
+              try {
+                iframe.contentWindow.focus()
+                iframe.contentWindow.print()
+
+                setTimeout(() => {
+                  document.body.removeChild(iframe)
+                  if (copy === pdfItem.printSettings.copies) {
+                    URL.revokeObjectURL(pdfUrl)
+                  }
+                }, 3000)
+              } catch (printError) {
+                console.error("PDF print error:", printError)
+                document.body.removeChild(iframe)
+                URL.revokeObjectURL(pdfUrl)
+              }
+            }, 1000)
+          }
+
+          // Delay between copies
+          if (copy < pdfItem.printSettings.copies) {
+            await new Promise((resolve) => setTimeout(resolve, 2000))
+          }
         }
       }
     } catch (error) {
       console.error(`❌ PDF PRINT ERROR for ${pdfItem.fileName}:`, error)
+      throw error
+    }
+  }
+
+  // Enhanced Canvas printing with proper dialog integration
+  const printCanvasPageWithEnhancedSettings = async (htmlContent, description, pageSettings) => {
+    console.log(`🖨️ ENHANCED CANVAS PRINTING: ${description}`)
+    console.log(`🎨 Enhanced Canvas Settings:`, pageSettings)
+
+    try {
+      if (window.require) {
+        // Electron - Enhanced printing with dialog
+        const { ipcRenderer } = window.require("electron")
+
+        const printConfig = {
+          htmlContent: htmlContent,
+          settings: {
+            colorMode: pageSettings.colorMode,
+            copies: 1,
+            description: description,
+          },
+        }
+
+        // Use enhanced IPC handler
+        ipcRenderer.send("silent-print-html-with-settings", printConfig)
+        console.log(`✅ ENHANCED CANVAS SENT TO ELECTRON: ${description}`)
+
+        // Wait for print dialog to be handled
+        await new Promise((resolve) => setTimeout(resolve, 2000))
+      } else {
+        // Web - Enhanced print with better settings
+        console.log(`🌐 ENHANCED WEB PRINT FOR CANVAS: ${description}`)
+
+        const iframe = document.createElement("iframe")
+        iframe.style.position = "absolute"
+        iframe.style.left = "-9999px"
+        iframe.style.top = "-9999px"
+        iframe.style.width = "1px"
+        iframe.style.height = "1px"
+        document.body.appendChild(iframe)
+
+        const iframeDoc = iframe.contentDocument || iframe.contentWindow.document
+        iframeDoc.open()
+        iframeDoc.write(htmlContent)
+        iframeDoc.close()
+
+        setTimeout(() => {
+          try {
+            iframe.contentWindow.focus()
+            iframe.contentWindow.print()
+
+            setTimeout(() => {
+              document.body.removeChild(iframe)
+            }, 3000)
+          } catch (printError) {
+            console.error("Enhanced canvas print error:", printError)
+            document.body.removeChild(iframe)
+          }
+        }, 1500)
+      }
+    } catch (error) {
+      console.error(`❌ ENHANCED CANVAS PRINT ERROR for ${description}:`, error)
+      throw error
+    }
+  }
+
+  // Enhanced PDF printing with proper dialog integration
+  const printPDFWithEnhancedSettings = async (pdfItem) => {
+    console.log(`📄 ENHANCED PDF PRINTING: ${pdfItem.fileName}`)
+    console.log(`📄 Enhanced User Settings:`, pdfItem.printSettings)
+
+    try {
+      if (window.require) {
+        // Electron - Enhanced PDF printing with full dialog support
+        const { ipcRenderer } = window.require("electron")
+        const pdfData = await pdfItem.file.arrayBuffer()
+
+        const printConfig = {
+          pdfData: Array.from(new Uint8Array(pdfData)),
+          settings: pdfItem.printSettings,
+          fileName: pdfItem.fileName,
+          totalPages: pdfItem.totalPages,
+          pagesToPrint: pdfItem.pagesToPrint,
+        }
+
+        const result = await ipcRenderer.invoke("print-pdf-with-full-settings", printConfig)
+
+        if (result.success) {
+          console.log(`✅ Enhanced PDF ${pdfItem.fileName} printed with full dialog support`)
+        } else {
+          throw new Error(result.error)
+        }
+      } else {
+        // Web - Enhanced PDF printing with better settings handling
+        console.log(`🌐 ENHANCED WEB PDF PRINT: ${pdfItem.fileName}`)
+
+        const pdfUrl = URL.createObjectURL(pdfItem.file)
+
+        for (let copy = 1; copy <= pdfItem.printSettings.copies; copy++) {
+          console.log(`📄 Enhanced printing copy ${copy} of ${pdfItem.printSettings.copies}`)
+
+          const iframe = document.createElement("iframe")
+          iframe.style.position = "absolute"
+          iframe.style.left = "-9999px"
+          iframe.style.top = "-9999px"
+          iframe.style.width = "1px"
+          iframe.style.height = "1px"
+          iframe.src = pdfUrl
+          document.body.appendChild(iframe)
+
+          if (pdfItem.printSettings.colorMode === "bw") {
+            iframe.style.filter = "grayscale(100%)"
+          }
+
+          iframe.onload = () => {
+            setTimeout(() => {
+              try {
+                iframe.contentWindow.focus()
+                iframe.contentWindow.print()
+
+                setTimeout(() => {
+                  document.body.removeChild(iframe)
+                  if (copy === pdfItem.printSettings.copies) {
+                    URL.revokeObjectURL(pdfUrl)
+                  }
+                }, 4000)
+              } catch (printError) {
+                console.error("Enhanced PDF print error:", printError)
+                document.body.removeChild(iframe)
+                URL.revokeObjectURL(pdfUrl)
+              }
+            }, 1500)
+          }
+
+          if (copy < pdfItem.printSettings.copies) {
+            await new Promise((resolve) => setTimeout(resolve, 3000))
+          }
+        }
+      }
+    } catch (error) {
+      console.error(`❌ ENHANCED PDF PRINT ERROR for ${pdfItem.fileName}:`, error)
       throw error
     }
   }
@@ -420,29 +654,37 @@ function PaymentPage() {
               <div className="processing-icon">
                 <Loader size={48} className="spin-animation" />
               </div>
-              <h2>Printing in Progress</h2>
-              <p>Sending print jobs to your Windows Print Queue...</p>
+              <h2>Printing with User Settings</h2>
+              <p>Applying your print preferences and sending to Windows Print Queue...</p>
 
               <div style={{ marginTop: "20px", padding: "16px", background: "#f0f8ff", borderRadius: "8px" }}>
                 <p>
                   <strong>🖨️ Current Status:</strong>
                 </p>
                 <p style={{ fontStyle: "italic", color: "#2e7d32" }}>
-                  {printProgress || "Initializing Windows printing..."}
+                  {printProgress || "Initializing Windows printing with user settings..."}
                 </p>
 
                 <div style={{ marginTop: "16px" }}>
                   <p>
-                    <strong>Print Queue Items:</strong>
+                    <strong>Print Queue with Settings:</strong>
                   </p>
-                  {pages.length > 0 && <p>• {pages.length} canvas pages</p>}
+                  {pages.length > 0 && (
+                    <div>
+                      {pages.map((page, index) => (
+                        <p key={index}>
+                          • Canvas Page {page.id}: {page.colorMode === "color" ? "Color" : "B&W"} mode
+                        </p>
+                      ))}
+                    </div>
+                  )}
                   {printQueue.length > 0 && (
                     <>
                       {printQueue.map((item, index) => (
                         <p key={index}>
-                          • {item.fileName} ({item.printSettings.copies} copies, {item.printSettings.pageRange} pages,{" "}
+                          • {item.fileName}: {item.printSettings.copies} copies, {item.printSettings.pageRange} pages,{" "}
                           {item.printSettings.colorMode === "color" ? "Color" : "B&W"},{" "}
-                          {item.printSettings.doubleSided === "both-sides" ? "Double-sided" : "Single-sided"})
+                          {item.printSettings.doubleSided === "both-sides" ? "Double-sided" : "Single-sided"}
                         </p>
                       ))}
                     </>
@@ -450,7 +692,7 @@ function PaymentPage() {
                 </div>
 
                 <p style={{ marginTop: "12px", fontWeight: "bold", color: "#2e7d32" }}>
-                  ⚡ Jobs sent directly to Windows Print Spooler!
+                  ⚡ All user settings being applied to print jobs!
                 </p>
               </div>
             </div>
@@ -463,17 +705,36 @@ function PaymentPage() {
               <div className="success-icon">
                 <Check size={48} />
               </div>
-              <h2>Printing Successful!</h2>
-              <p>All print jobs sent to your Windows Print Queue!</p>
+              <h2>Printing Successful with Settings!</h2>
+              <p>All print jobs sent to Windows Print Queue with your specified settings!</p>
               <p>Check your Windows Print Queue for processing jobs.</p>
 
               <div style={{ marginTop: "20px", padding: "16px", background: "#e8f5e8", borderRadius: "8px" }}>
                 <p>
-                  <strong>✅ Print Summary:</strong>
+                  <strong>✅ Print Summary with Settings:</strong>
                 </p>
-                {pages.length > 0 && <p>• {pages.length} canvas pages sent (silently via Electron)</p>}
-                {printQueue.length > 0 && <p>• {printQueue.length} PDF documents sent (via default PDF viewer)</p>}
-                <p>• All items sent directly to Windows Print Spooler</p>
+                {pages.length > 0 && (
+                  <div>
+                    {pages.map((page, index) => (
+                      <p key={index}>
+                        • Canvas Page {page.id}: {page.colorMode === "color" ? "Color" : "B&W"} mode applied
+                      </p>
+                    ))}
+                  </div>
+                )}
+                {printQueue.length > 0 && (
+                  <div>
+                    {printQueue.map((item, index) => (
+                      <p key={index}>
+                        • {item.fileName}: {item.printSettings.copies} copies, {item.printSettings.pageRange} pages,{" "}
+                        {item.printSettings.colorMode === "color" ? "Color" : "B&W"},{" "}
+                        {item.printSettings.doubleSided === "both-sides" ? "Double-sided" : "Single-sided"}
+                      </p>
+                    ))}
+                  </div>
+                )}
+                <p>• All user preferences applied successfully</p>
+                <p>• Jobs sent directly to Windows Print Spooler</p>
               </div>
 
               <div className="countdown">

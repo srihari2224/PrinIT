@@ -1,20 +1,77 @@
 "use client"
 
+import { useState, useEffect, useRef } from "react"
 import { useNavigate } from "react-router-dom"
+import VideoModal from "./components/VideoModal"
 import "./App.css"
 
 // Import images
 import iphoneImage from "./assets/images/iphonee.jpg"
 
 function App() {
-  const navigate = useNavigate() // Initialize the navigate function
+  const navigate = useNavigate()
+  const [showVideoModal, setShowVideoModal] = useState(false)
+  const inactivityTimerRef = useRef(null)
+  const lastActivityRef = useRef(Date.now())
+
+  // Track user activity
+  const resetInactivityTimer = () => {
+    lastActivityRef.current = Date.now()
+
+    // Clear existing timer
+    if (inactivityTimerRef.current) {
+      clearTimeout(inactivityTimerRef.current)
+    }
+
+    // Set new timer for 30 seconds
+    inactivityTimerRef.current = setTimeout(() => {
+      setShowVideoModal(true)
+    }, 30000) // 30 seconds
+  }
+
+  // Set up activity listeners
+  useEffect(() => {
+    const activityEvents = ["mousedown", "mousemove", "keypress", "scroll", "touchstart", "click"]
+
+    const handleActivity = () => {
+      if (!showVideoModal) {
+        resetInactivityTimer()
+      }
+    }
+
+    // Add event listeners
+    activityEvents.forEach((event) => {
+      document.addEventListener(event, handleActivity, true)
+    })
+
+    // Start the initial timer
+    resetInactivityTimer()
+
+    // Cleanup
+    return () => {
+      activityEvents.forEach((event) => {
+        document.removeEventListener(event, handleActivity, true)
+      })
+      if (inactivityTimerRef.current) {
+        clearTimeout(inactivityTimerRef.current)
+      }
+    }
+  }, [showVideoModal])
+
+  const handleCloseVideo = () => {
+    setShowVideoModal(false)
+    // Reset the inactivity timer after closing video
+    setTimeout(() => {
+      resetInactivityTimer()
+    }, 1000)
+  }
 
   return (
     <div className="main-screen">
       <div className="navibar">
-        <div class="logo" onClick={() => navigate("/")}>
-          <span class="home">HOME</span>
-          <span class="num1">25</span>
+        <div className="logo" onClick={() => navigate("/")}>
+          <span className="home">HOME</span>
+          <span className="num1">25</span>
         </div>
       </div>
 
@@ -50,15 +107,17 @@ function App() {
                 }
               }}
             />
-            <div class="blank-paper">
+            <div className="blank-paper">
               <button id="blank" onClick={() => navigate("/blank-papers")}>
-                {" "}
                 Blank Papers
               </button>
             </div>
           </div>
         </div>
       </div>
+
+      {/* Video Advertisement Modal for Inactivity */}
+      <VideoModal isOpen={showVideoModal} onClose={handleCloseVideo} autoPlay={true} />
     </div>
   )
 }

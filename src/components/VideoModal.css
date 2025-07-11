@@ -1,0 +1,251 @@
+.video-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    backdrop-filter: blur(0px);
+    -webkit-backdrop-filter: blur(0px);
+  }
+  to {
+    opacity: 1;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+}
+
+.video-container {
+  position: relative;
+  width: 1500px;
+  height: 1125px;
+  max-width: 90vw;
+  max-height: 80vh;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+  animation: slideIn 0.4s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9) translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.video-player {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 16px;
+  display: block;
+}
+
+.image-slideshow {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.slide-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 16px;
+  position: absolute;
+  top: 0;
+  left: 0;
+  opacity: 0;
+  transition: opacity 0.8s ease-in-out;
+}
+
+.slide-image.active {
+  opacity: 1;
+}
+
+.slide-image.fade-out {
+  opacity: 0;
+}
+
+.video-close-button {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: rgba(0, 0, 0, 0.7);
+  border: none;
+  color: white;
+  font-size: 20px;
+  font-weight: bold;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  z-index: 10;
+}
+
+.video-close-button:hover {
+  background-color: rgba(0, 0, 0, 0.9);
+  transform: scale(1.1);
+}
+
+/* Progress indicator for slideshow */
+.slideshow-progress {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 8px;
+  z-index: 10;
+}
+
+.progress-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: rgba(255, 255, 255, 0.5);
+  transition: all 0.3s ease;
+}
+
+.progress-dot.active {
+  background-color: rgba(255, 255, 255, 0.9);
+  transform: scale(1.2);
+}
+
+/* Phase indicator */
+.phase-indicator {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  background-color: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  z-index: 10;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 1600px) {
+  .video-container {
+    width: 85vw;
+    height: 63.75vw; /* Maintain 1500:1125 aspect ratio */
+    max-height: 75vh;
+  }
+}
+
+@media (max-width: 1024px) {
+  .video-container {
+    width: 90vw;
+    height: 67.5vw; /* Maintain aspect ratio */
+    max-height: 70vh;
+  }
+
+  .video-close-button {
+    width: 36px;
+    height: 36px;
+    font-size: 18px;
+    top: 12px;
+    right: 12px;
+  }
+
+  .phase-indicator {
+    top: 16px;
+    left: 16px;
+    padding: 6px 12px;
+    font-size: 11px;
+  }
+}
+
+@media (max-width: 768px) {
+  .video-container {
+    width: 95vw;
+    height: 71.25vw;
+    max-height: 60vh;
+    border-radius: 12px;
+  }
+
+  .video-close-button {
+    width: 32px;
+    height: 32px;
+    font-size: 16px;
+    top: 8px;
+    right: 8px;
+  }
+
+  .phase-indicator {
+    top: 12px;
+    left: 12px;
+    padding: 4px 8px;
+    font-size: 10px;
+  }
+
+  .slideshow-progress {
+    bottom: 15px;
+  }
+
+  .progress-dot {
+    width: 6px;
+    height: 6px;
+  }
+}
+
+@media (max-width: 480px) {
+  .video-container {
+    width: 98vw;
+    height: 73.5vw;
+    max-height: 50vh;
+    border-radius: 8px;
+  }
+
+  .video-close-button {
+    width: 28px;
+    height: 28px;
+    font-size: 14px;
+    top: 6px;
+    right: 6px;
+  }
+
+  .phase-indicator {
+    top: 8px;
+    left: 8px;
+    padding: 3px 6px;
+    font-size: 9px;
+  }
+
+  .slideshow-progress {
+    bottom: 10px;
+    gap: 6px;
+  }
+
+  .progress-dot {
+    width: 5px;
+    height: 5px;
+  }
+}

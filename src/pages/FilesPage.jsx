@@ -73,6 +73,34 @@ function FilesPage() {
     loadPDFJS()
   }, [])
 
+  // Function to get image dimensions
+  const getImageDimensions = (file) => {
+    return new Promise((resolve) => {
+      const img = new Image()
+      img.onload = () => {
+        // Calculate aspect ratio and fit within reasonable bounds
+        const maxWidth = 300
+        const maxHeight = 300
+        const aspectRatio = img.width / img.height
+
+        let width, height
+        if (aspectRatio > 1) {
+          // Landscape
+          width = Math.min(maxWidth, img.width)
+          height = width / aspectRatio
+        } else {
+          // Portrait or square
+          height = Math.min(maxHeight, img.height)
+          width = height * aspectRatio
+        }
+
+        resolve({ width: Math.round(width), height: Math.round(height) })
+      }
+      img.onerror = () => resolve({ width: 200, height: 200 }) // fallback
+      img.src = URL.createObjectURL(file)
+    })
+  }
+
   // Function to get PDF page count
   const getPDFPageCount = async (file) => {
     return new Promise((resolve) => {
@@ -374,13 +402,20 @@ function FilesPage() {
   }
 
   // Handle drop on canvas
-  const handleDrop = (e) => {
+  const handleDrop = async (e) => {
     e.preventDefault()
     const canvasRect = canvasRef.current.getBoundingClientRect()
 
     if (draggingFile) {
-      const x = e.clientX - canvasRect.left
-      const y = e.clientY - canvasRect.top
+      let x = e.clientX - canvasRect.left
+      let y = e.clientY - canvasRect.top
+
+      // Get dynamic image dimensions based on actual image
+      const dimensions = await getImageDimensions(draggingFile)
+
+      // Ensure image stays within canvas bounds
+      x = Math.max(0, Math.min(x, 743.75 - dimensions.width))
+      y = Math.max(0, Math.min(y, 1052.5 - dimensions.height))
 
       setPages(
         pages.map((page) => {
@@ -394,8 +429,8 @@ function FilesPage() {
                   file: draggingFile,
                   x,
                   y,
-                  width: 200,
-                  height: 200,
+                  width: dimensions.width,
+                  height: dimensions.height,
                   rotation: 0,
                   crop: null,
                 },
@@ -407,8 +442,12 @@ function FilesPage() {
       )
       setDraggingFile(null)
     } else if (draggingItem) {
-      const x = e.clientX - canvasRect.left - dragOffset.x
-      const y = e.clientY - canvasRect.top - dragOffset.y
+      let x = e.clientX - canvasRect.left - dragOffset.x
+      let y = e.clientY - canvasRect.top - dragOffset.y
+
+      // Constrain to canvas boundaries
+      x = Math.max(0, Math.min(x, 743.75 - draggingItem.width))
+      y = Math.max(0, Math.min(y, 1052.5 - draggingItem.height))
 
       setPages(
         pages.map((page) => {
@@ -477,25 +516,33 @@ function FilesPage() {
 
     switch (handle) {
       case "bottom-right":
-        newWidth = Math.max(50, initialWidth + deltaX)
-        newHeight = Math.max(50, initialHeight + deltaY)
+        newWidth = Math.max(50, Math.min(initialWidth + deltaX, 743.75 - initialX))
+        newHeight = Math.max(50, Math.min(initialHeight + deltaY, 1052.5 - initialY))
         break
       case "bottom-left":
         newWidth = Math.max(50, initialWidth - deltaX)
-        newHeight = Math.max(50, initialHeight + deltaY)
-        newX = initialX + deltaX
+        newHeight = Math.max(50, Math.min(initialHeight + deltaY, 1052.5 - initialY))
+        newX = Math.max(0, initialX + deltaX)
         break
       case "top-right":
-        newWidth = Math.max(50, initialWidth + deltaX)
+        newWidth = Math.max(50, Math.min(initialWidth + deltaX, 743.75 - initialX))
         newHeight = Math.max(50, initialHeight - deltaY)
-        newY = initialY + deltaY
+        newY = Math.max(0, initialY + deltaY)
         break
       case "top-left":
         newWidth = Math.max(50, initialWidth - deltaX)
         newHeight = Math.max(50, initialHeight - deltaY)
-        newX = initialX + deltaX
-        newY = initialY + deltaY
+        newX = Math.max(0, initialX + deltaX)
+        newY = Math.max(0, initialY + deltaY)
         break
+    }
+
+    // Ensure item stays within canvas bounds
+    if (newX + newWidth > 743.75) {
+      newWidth = 743.75 - newX
+    }
+    if (newY + newHeight > 1052.5) {
+      newHeight = 1052.5 - newY
     }
 
     setPages(
@@ -902,6 +949,10 @@ function FilesPage() {
                         width: `${item.width}px`,
                         height: `${item.height}px`,
                         transform: `rotate(${item.rotation}deg)`,
+                        border:
+                          selectedItem && selectedItem.id === item.id
+                            ? `2px solid #000000`
+                            : `1px dashed rgba(0,0,0,0.3)`,
                       }}
                       onClick={(e) => {
                         e.stopPropagation()
