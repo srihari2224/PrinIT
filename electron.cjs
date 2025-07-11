@@ -1,5 +1,10 @@
 const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
+const fs = require('fs');
+const os = require('os');
+const { exec } = require('child_process');
+
+let mainWindow; // Store the main window reference
 
 function createWindow() {
   const win = new BrowserWindow({
@@ -13,186 +18,178 @@ function createWindow() {
     },
   });
 
+  mainWindow = win; // Store the reference to the main window
+
   if (!app.isPackaged) {
-    // Dev mode: still hits Vite server
     win.loadURL('http://localhost:5173');
   } else {
-    // Prod mode: load the build folder
     win.loadFile(path.join(__dirname, 'dist', 'index.html'));
   }
 
-  // Remove DevTools in production to avoid autofill errors
   if (!app.isPackaged) {
     win.webContents.openDevTools();
   }
 }
 
-// FIXED: Get available printers using correct Electron API
+// Create temp directory for print files
+const tempDir = path.join(os.tmpdir(), 'prinit-temp');
+if (!fs.existsSync(tempDir)) {
+  fs.mkdirSync(tempDir, { recursive: true });
+}
+
+// Get printers (existing logic, should be fine)
 ipcMain.handle('get-printers', async () => {
   try {
-    const win = BrowserWindow.getFocusedWindow();
-    if (win) {
-      // CORRECT METHOD: Use webContents.getPrintersAsync() or the sync version
-      let printers = [];
-      try {
-        // Try the async method first (newer Electron versions)
-        if (win.webContents.getPrintersAsync) {
-          printers = await win.webContents.getPrintersAsync();
-        } else {
-          // Fallback to sync method (older Electron versions)
-          printers = win.webContents.getPrinters();
+    console.log('🖨️ Getting printers...');
+    
+    return new Promise((resolve) => {
+      exec('wmic printer get name /format:list', { timeout: 5000 }, (error, stdout) => {
+        if (error) {
+          console.error('❌ Error getting printers:', error);
+          resolve([{ name: 'Default Printer', status: 0 }]);
+          return;
         }
-      } catch (error) {
-        console.log('Using alternative printer detection method...');
-        // Alternative: Use the print method to get available printers
-        printers = [
-          { name: 'Default Printer', status: 0 },
-          { name: 'Microsoft Print to PDF', status: 0 }
-        ];
-      }
-      
-      console.log('✅ Available printers detected:', printers);
-      return printers;
-    }
-    return [];
+
+        try {
+          const printers = [];
+          const lines = stdout.split('\n').filter(line => line.includes('Name=') && line.trim() !== 'Name=');
+          
+          lines.forEach(line => {
+            const name = line.replace('Name=', '').trim();
+            if (name) {
+              printers.push({ name: name, status: 0 });
+            }
+          });
+          
+          if (printers.length === 0) {
+            printers.push({ name: 'Default Printer', status: 0 });
+          }
+          
+          console.log('✅ Found printers:', printers);
+          resolve(printers);
+        } catch (parseError) {
+          console.error('❌ Error parsing printers:', parseError);
+          resolve([{ name: 'Default Printer', status: 0 }]);
+        }
+      });
+    });
   } catch (error) {
     console.error('❌ Failed to get printers:', error);
-    // Return default printers so the app doesn't break
-    return [
-      { name: 'Default Printer', status: 0 },
-      { name: 'Microsoft Print to PDF', status: 0 }
-    ];
+    return [{ name: 'Default Printer', status: 0 }];
   }
 });
 
-// ENHANCED: Silent HTML printing with better error handling
+// Print HTML content (for Canvas pages) directly using Electron's webContents.print()
 ipcMain.on('silent-print-html', async (event, htmlContent) => {
   try {
-    console.log('🖨️ STARTING PRINT PROCESS...');
-    
+    if (!mainWindow) {
+      console.error('❌ mainWindow not available for printing HTML.');
+      event.reply('print-status', { status: 'error', message: 'Electron window not ready for printing.' });
+      return;
+    }
+
+    console.log('🖨️ Printing HTML content via Electron webContents.print()...');
+    event.reply('print-status', { status: 'processing', message: 'Sending canvas page to Electron printer...' });
+
+    // Create a temporary hidden BrowserWindow for printing HTML content
     const printWindow = new BrowserWindow({
-      show: false, // Keep hidden for silent printing
-      width: 794,  // A4 width in pixels at 96 DPI
-      height: 1123, // A4 height in pixels at 96 DPI
+      show: false, // Keep it hidden
       webPreferences: {
-        nodeIntegration: false,
-        contextIsolation: true,
-        webSecurity: false, // Allow local file access for images
-        backgroundThrottling: false // Prevent throttling for fast processing
-      }
-    });
-    
-    // Load the HTML content
-    await printWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(htmlContent)}`);
-    
-    // Wait for content to load
-    await new Promise(resolve => {
-      printWindow.webContents.once('did-finish-load', () => {
-        console.log('📄 HTML content loaded successfully');
-        setTimeout(resolve, 1500); // Increased wait time for better reliability
-      });
+        contextIsolation: false,
+        nodeIntegration: true,
+      },
     });
 
-    // ENHANCED: Print with better options and error handling
-    try {
-      const printOptions = {
-        silent: true,
-        printBackground: true,
-        color: true, // CSS will handle B&W conversion
-        margins: {
-          marginType: 'none' // No margins for exact A4 printing
-        },
-        pageSize: 'A4',
-        scaleFactor: 100,
-        landscape: false,
-        copies: 1,
-        // Enhanced quality settings
-        dpi: {
-          horizontal: 300, // High quality
-          vertical: 300
-        },
-        collate: false,
-        duplex: 'simplex', // Single-sided by default
-        printQuality: 'high'
-      };
+    // Load the HTML content into the hidden window using a data URL
+    const dataUrl = `data:text/html;charset=utf-8,${encodeURIComponent(htmlContent)}`;
+    await printWindow.loadURL(dataUrl);
 
-      console.log('🖨️ Sending to printer with options:', printOptions);
-      
-      // CRITICAL: Use promise-based printing for better error handling
-      await new Promise((resolve, reject) => {
-        printWindow.webContents.print(printOptions, (success, failureReason) => {
-          if (success) {
-            console.log('✅ PRINT SUCCESSFUL!');
-            resolve();
-          } else {
-            console.error('❌ PRINT FAILED:', failureReason);
-            reject(new Error(failureReason || 'Print failed'));
-          }
-        });
-      });
-      
-    } catch (printError) {
-      console.error('❌ Print execution error:', printError);
-      
-      // FALLBACK: Try alternative print method
-      console.log('🔄 Trying fallback print method...');
+    // Wait for content to load before printing
+    printWindow.webContents.on('did-finish-load', async () => {
       try {
-        await printWindow.webContents.print({
-          silent: true,
-          printBackground: true,
-          pageSize: 'A4'
-        });
-        console.log('✅ FALLBACK PRINT SUCCESSFUL!');
-      } catch (fallbackError) {
-        console.error('❌ FALLBACK PRINT ALSO FAILED:', fallbackError);
-        throw fallbackError;
+        // Print the content silently
+        await printWindow.webContents.print({ silent: true, printBackground: true });
+        console.log('✅ HTML content sent to printer silently via Electron webContents.print().');
+        event.reply('print-status', { status: 'success', message: 'Canvas page sent to Windows Print Queue!' });
+      } catch (printError) {
+        console.error('❌ Error printing HTML via webContents.print():', printError);
+        event.reply('print-status', { status: 'error', message: `Failed to print canvas page: ${printError.message}` });
+      } finally {
+        printWindow.close(); // Close the hidden window after printing
       }
-    }
-    
-    // Close the print window after a delay
-    setTimeout(() => {
-      if (!printWindow.isDestroyed()) {
-        printWindow.close();
-        console.log('🗑️ Print window closed');
-      }
-    }, 3000);
-    
+    });
+
   } catch (error) {
-    console.error('❌ CRITICAL PRINT ERROR:', error);
-    
-    // EMERGENCY FALLBACK: Open print dialog for user
-    try {
-      console.log('🚨 OPENING MANUAL PRINT DIALOG...');
-      const emergencyWindow = new BrowserWindow({
-        show: true,
-        width: 800,
-        height: 600,
-        webPreferences: {
-          nodeIntegration: false,
-          contextIsolation: true
-        }
-      });
-      
-      await emergencyWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(htmlContent)}`);
-      
-      // Show print dialog to user
-      setTimeout(() => {
-        emergencyWindow.webContents.print({
-          silent: false, // Show print dialog
-          printBackground: true,
-          pageSize: 'A4'
-        });
-      }, 2000);
-      
-    } catch (emergencyError) {
-      console.error('❌ EMERGENCY FALLBACK FAILED:', emergencyError);
-    }
+    console.error('❌ Error in silent-print-html IPC handler:', error);
+    event.reply('print-status', { status: 'error', message: `Print failed: ${error.message}` });
   }
 });
 
-// ENHANCED: Test print with better reliability
-ipcMain.handle('test-print', async (event, testData) => {
+// NEW: Print PDF files directly using Electron's webContents.print()
+ipcMain.handle('print-pdf-native', async (event, pdfDataArray) => {
   try {
+    if (!mainWindow) {
+      console.error('❌ mainWindow not available for printing PDF.');
+      return { success: false, error: 'Electron window not ready for printing.' };
+    }
+
+    console.log('📄 STARTING PDF PRINT via Electron webContents.print()...');
+    
+    // Convert Uint8Array back to Buffer
+    const pdfBuffer = Buffer.from(pdfDataArray);
+    
+    // Create a data URL for the PDF
+    const dataUrl = `data:application/pdf;base64,${pdfBuffer.toString('base64')}`;
+
+    // Create a temporary hidden BrowserWindow for printing PDF content
+    const printWindow = new BrowserWindow({
+      show: false, // Keep it hidden
+      webPreferences: {
+        contextIsolation: false,
+        nodeIntegration: true,
+        plugins: true, // Enable PDF viewer plugin
+      },
+    });
+
+    await printWindow.loadURL(dataUrl);
+
+    await new Promise((resolve, reject) => {
+      printWindow.webContents.on('did-finish-load', async () => {
+        try {
+          // Print the PDF content silently
+          await printWindow.webContents.print({ silent: true, printBackground: true });
+          console.log('✅ PDF content sent to printer silently via Electron webContents.print().');
+          resolve();
+        } catch (printError) {
+          console.error('❌ Error printing PDF via webContents.print():', printError);
+          reject(printError);
+        } finally {
+          printWindow.close(); // Close the hidden window after printing
+        }
+      });
+      printWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription) => {
+        console.error('❌ PDF load failed:', errorDescription);
+        reject(new Error(`Failed to load PDF for printing: ${errorDescription}`));
+        printWindow.close();
+      });
+    });
+    
+    return { success: true, message: 'PDF sent to Windows Print Queue!' };
+    
+  } catch (error) {
+    console.error('❌ PDF PRINT ERROR:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// Test print using Electron's webContents.print()
+ipcMain.handle('test-print', async (event) => {
+  try {
+    if (!mainWindow) {
+      console.error('❌ mainWindow not available for test printing.');
+      return { success: false, error: 'Electron window not ready for test printing.' };
+    }
+
     console.log('🧪 STARTING TEST PRINT...');
     
     const testHTML = `
@@ -201,143 +198,62 @@ ipcMain.handle('test-print', async (event, testData) => {
       <head>
         <style>
           @page { size: A4; margin: 1in; }
-          @media print {
-            body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-          }
           body { 
             font-family: Arial, sans-serif; 
-            font-size: 12pt; 
-            background: white; 
-            color: black; 
-            line-height: 1.5;
+            font-size: 14pt; 
+            text-align: center;
+            margin-top: 2in;
           }
-          .test-content { 
-            text-align: center; 
-            margin-top: 2in; 
-            border: 2px solid #000;
+          .test-box {
+            border: 3px solid #000;
             padding: 20px;
-          }
-          .quality-test { 
-            font-size: 10pt; 
-            margin-top: 1in; 
-            text-align: left;
+            background: #f0f0f0;
           }
         </style>
       </head>
       <body>
-        <div class="test-content">
-          <h1>🖨️ PrinIT Test Print</h1>
-          <p><strong>SUCCESS!</strong> Your printer is working correctly.</p>
+        <div class="test-box">
+          <h1>🖨️ PrinIT TEST PRINT</h1>
+          <p><strong>SUCCESS!</strong> This is a test print from PrinIT!</p>
           <p>Date: ${new Date().toLocaleString()}</p>
-          <p>Time: ${new Date().toLocaleTimeString()}</p>
-          <p>If you can see this page clearly, printing is functional!</p>
-        </div>
-        <div class="quality-test">
-          <h3>Quality Test:</h3>
-          <p>Lowercase: abcdefghijklmnopqrstuvwxyz</p>
-          <p>Uppercase: ABCDEFGHIJKLMNOPQRSTUVWXYZ</p>
-          <p>Numbers: 1234567890</p>
-          <p>Symbols: !@#$%^&*()_+-=[]{}|;:,.<>?</p>
-          <p>Unicode: ★ ♦ ♠ ♣ ♥ ☀ ☁ ☂ ☃ ☄</p>
+          <p>If you see this, printing is working!</p>
+          <p>Check your Windows Print Queue!</p>
         </div>
       </body>
       </html>
     `;
 
-    const testWindow = new BrowserWindow({
-      show: false,
+    // Create a temporary hidden BrowserWindow for test printing
+    const printWindow = new BrowserWindow({
+      show: false, // Keep it hidden
       webPreferences: {
-        nodeIntegration: false,
-        contextIsolation: true
-      }
+        contextIsolation: false,
+        nodeIntegration: true,
+      },
     });
 
-    await testWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(testHTML)}`);
-    
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    const dataUrl = `data:text/html;charset=utf-8,${encodeURIComponent(testHTML)}`;
+    await printWindow.loadURL(dataUrl);
 
-    // Try to print with callback
     await new Promise((resolve, reject) => {
-      testWindow.webContents.print({
-        silent: true,
-        printBackground: true,
-        pageSize: 'A4',
-        dpi: { horizontal: 300, vertical: 300 }
-      }, (success, failureReason) => {
-        if (success) {
-          console.log('✅ TEST PRINT SUCCESSFUL!');
+      printWindow.webContents.on('did-finish-load', async () => {
+        try {
+          await printWindow.webContents.print({ silent: true, printBackground: true });
+          console.log('✅ Test print sent silently via Electron webContents.print().');
           resolve();
-        } else {
-          console.error('❌ TEST PRINT FAILED:', failureReason);
-          reject(new Error(failureReason || 'Test print failed'));
+        } catch (printError) {
+          console.error('❌ Error printing test HTML via webContents.print():', printError);
+          reject(printError);
+        } finally {
+          printWindow.close();
         }
       });
     });
 
-    setTimeout(() => {
-      if (!testWindow.isDestroyed()) {
-        testWindow.close();
-      }
-    }, 2000);
-
-    return { success: true, message: 'Test print sent successfully!' };
+    return { success: true, message: 'Test print sent! Check your Windows Print Queue!' };
     
   } catch (error) {
     console.error('❌ TEST PRINT ERROR:', error);
-    return { success: false, error: error.message };
-  }
-});
-
-// ENHANCED: Silent print with better error handling
-ipcMain.handle('silent-print', async (event, printData) => {
-  try {
-    const win = BrowserWindow.getFocusedWindow();
-    if (!win) {
-      return { success: false, error: 'No window found' };
-    }
-
-    console.log('🚀 Starting silent print process...');
-    
-    // Enhanced print options
-    const printOptions = {
-      silent: true,
-      printBackground: true,
-      color: true,
-      margins: {
-        marginType: 'none'
-      },
-      pageSize: 'A4',
-      scaleFactor: 100,
-      landscape: false,
-      copies: 1,
-      dpi: {
-        horizontal: 300,
-        vertical: 300
-      },
-      collate: false,
-      duplex: 'simplex',
-      printQuality: 'high'
-    };
-    
-    console.log('Print options:', printOptions);
-    
-    // Use callback-based printing for better error handling
-    await new Promise((resolve, reject) => {
-      win.webContents.print(printOptions, (success, failureReason) => {
-        if (success) {
-          console.log('✅ Silent print successful');
-          resolve();
-        } else {
-          console.error('❌ Silent print failed:', failureReason);
-          reject(new Error(failureReason || 'Silent print failed'));
-        }
-      });
-    });
-    
-    return { success: true, message: 'Print sent successfully' };
-    
-  } catch (error) {
-    console.error('❌ Silent print error:', error);
     return { success: false, error: error.message };
   }
 });

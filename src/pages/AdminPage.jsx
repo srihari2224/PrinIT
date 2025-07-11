@@ -102,6 +102,25 @@ function AdminPage() {
     }
   }
 
+  const handleTestPrint = async () => {
+    try {
+      if (window.require) {
+        const { ipcRenderer } = window.require("electron")
+        const result = await ipcRenderer.invoke("test-print")
+
+        if (result.success) {
+          alert(`✅ ${result.message}`)
+        } else {
+          alert(`❌ Test print failed: ${result.error}`)
+        }
+      } else {
+        alert("Test print only works in Electron app")
+      }
+    } catch (error) {
+      alert(`❌ Test print error: ${error.message}`)
+    }
+  }
+
   if (!isAuthenticated) {
     return (
       <div className="admin-login">
@@ -229,6 +248,24 @@ function AdminPage() {
           <button className="reset-button" onClick={handleReset}>
             <RotateCcw size={20} />
             Reset to 200/200
+          </button>
+
+          <button
+            className="test-btn"
+            onClick={handleTestPrint}
+            style={{
+              background: "#007bff",
+              color: "white",
+              padding: "12px 24px",
+              borderRadius: "8px",
+              border: "none",
+              cursor: "pointer",
+              fontSize: "16px",
+              fontWeight: "600",
+              marginBottom: "20px",
+            }}
+          >
+            🖨️ Test Print Now
           </button>
 
           <div className="test-buttons">

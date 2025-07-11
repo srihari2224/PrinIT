@@ -1,65 +1,61 @@
 {
-  "name": "my-react-app",
+  "name": "prinit",
   "private": true,
   "version": "0.0.0",
   "type": "module",
   "main": "electron.cjs",
+  "homepage": "./",
   "scripts": {
-    "dev": "concurrently \"vite\" \"wait-on http://localhost:5173 && electron electron.cjs\"",
+    "dev": "concurrently \"vite\" \"wait-on http://localhost:5173 && electron .\"",
     "build": "vite build",
-    "start": "electron electron.cjs",
     "lint": "eslint .",
     "preview": "vite preview",
-    "dist": "electron-builder"
+    "electron": "electron .",
+    "electron-dev": "concurrently \"npm run dev\" \"wait-on http://localhost:5173 && electron .\"",
+    "electron-pack": "npm run build && electron-builder",
+    "dist": "npm run build && electron-builder --publish=never"
   },
-  "build": {
-    "appId": "com.prinit.desktop",
-    "productName": "PrinIT",
-    "files": [
-      "dist",
-      "electron.cjs"
-    ],
-    "directories": {
-      "output": "release"
-    },
-    "win": {
-      "target": ["portable"]
-    },
-    "portable": {
-      "artifactName": "PrinIT-${version}-portable.exe"
-    }
-  },
-
   "dependencies": {
-    "@splinetool/react-spline": "^4.0.0",
-    "canvas": "^3.1.1",
-    "docx-preview": "^0.3.5",
-    "html2canvas": "^1.4.1",
-    "jspdf": "^3.0.1",
-    "lucide-react": "^0.515.0",
-    "mammoth": "^1.9.1",
-    "pdf-lib": "^1.17.1",
-    "pdf2pic": "^3.2.0",
-    "react": "^19.1.0",
-    "react-dom": "^19.1.0",
-    "react-router-dom": "^7.6.2"
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^6.28.0",
+    "lucide-react": "^0.468.0",
+    "printer": "^0.4.0",
+    "node-printer": "^1.0.1",
+    "win32-api": "^20.5.0",
+    "ffi-napi": "^4.0.3",
+    "ref-napi": "^3.0.3"
   },
   "devDependencies": {
-    "@eslint/js": "^9.25.0",
-    "@vitejs/plugin-react": "^4.4.1",
-    "concurrently": "^9.2.0",
-    "electron": "^37.0.0",
-    "electron-builder": "^26.0.12",
-    "eslint": "^9.25.0",
-    "eslint-plugin-react-hooks": "^5.2.0",
-    "eslint-plugin-react-refresh": "^0.4.19",
-    "globals": "^16.0.0",
-    "tsx": "^4.20.3",
-    "vite": "^6.3.5",
-    "wait-on": "^8.0.3"
+    "@eslint/js": "^9.13.0",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.3",
+    "concurrently": "^7.6.0",
+    "electron": "^22.3.27",
+    "electron-builder": "^24.6.4",
+    "eslint": "^9.13.0",
+    "eslint-plugin-react": "^7.37.2",
+    "eslint-plugin-react-hooks": "^5.0.0",
+    "eslint-plugin-react-refresh": "^0.4.14",
+    "globals": "^15.11.0",
+    "vite": "^6.0.1",
+    "wait-on": "^7.0.1"
   },
-  "description": "This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.",
-  "keywords": [],
-  "author": "",
-  "license": "ISC"
+  "build": {
+    "appId": "com.prinit.app",
+    "productName": "PrinIT",
+    "directories": {
+      "output": "dist-electron"
+    },
+    "files": ["dist/**/*", "electron.cjs", "package.json"],
+    "win": {
+      "target": "nsis",
+      "icon": "src/assets/images/P.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
+  }
 }
