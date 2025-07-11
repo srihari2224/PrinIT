@@ -740,55 +740,6 @@ function FilesPage() {
     }
   }, [])
 
-  // Razorpay payment logic
-  useEffect(() => {
-    // Inject Razorpay script if not present
-    if (!document.getElementById('razorpay-script')) {
-      const script = document.createElement('script');
-      script.id = 'razorpay-script';
-      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-      script.async = true;
-      document.body.appendChild(script);
-    }
-  }, []);
-
-  const handleRazorpayPayment = () => {
-    if (calculateTotalCost() === 0) {
-      alert('No items to print!');
-      return;
-    }
-    const options = {
-      key: 'rzp_test_X5OHvkg69oonK2',
-      amount: calculateTotalCost() * 100,
-      currency: 'INR',
-      name: 'PrinIT Service',
-      description: 'Payment for Windows printing services',
-      handler: (response) => {
-        alert('Payment successful! Payment ID: ' + response.razorpay_payment_id);
-        // TODO: Add print logic here if needed
-      },
-      prefill: {
-        name: 'Customer Name',
-        email: 'customer@example.com',
-        contact: '',
-      },
-      theme: {
-        color: '#000000',
-      },
-      modal: {
-        ondismiss: () => {
-          alert('Payment cancelled');
-        },
-      },
-    };
-    try {
-      const razorpay = new window.Razorpay(options);
-      razorpay.open();
-    } catch (error) {
-      alert('Payment system error. Please try again.');
-    }
-  };
-
   return (
     <div className="files-page">
       <div className="navbar">
@@ -1197,7 +1148,16 @@ function FilesPage() {
           </div>
           <button
             className="payment-button"
-            onClick={handleRazorpayPayment}
+            onClick={() =>
+              navigate("/payment", {
+                state: {
+                  totalCost: calculateTotalCost(),
+                  pages: pages,
+                  printQueue: printQueue,
+                  blankSheets: 0,
+                },
+              })
+            }
             disabled={calculateTotalCost() === 0}
           >
             <span className="btn-text">Pay & Print Now</span>
