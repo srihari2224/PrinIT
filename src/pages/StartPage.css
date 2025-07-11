@@ -10,7 +10,7 @@
 .start-header {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   text-align: center;
-  height: 1400px;
+  height: 800px;
   padding-top: 40px;
   color: #ffffff;
   display: flex;
@@ -42,7 +42,7 @@
   cursor: pointer;
   text-align: center;
   font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-  margin-top: 700px;
+  margin-top: px;
   line-height: 1.1;
 }
 

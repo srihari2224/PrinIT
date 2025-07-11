@@ -38,7 +38,7 @@ function VideoModal({ isOpen, onClose, autoPlay = true }) {
       // Reset and play video with audio
       videoRef.current.currentTime = 0
       videoRef.current.muted = false // Enable audio
-      videoRef.current.volume = 0.7 // Set volume to 70%
+      videoRef.current.volume = 0.6 // Set volume to 70%
 
       videoRef.current.play().catch((error) => {
         console.log("Video autoplay failed:", error)

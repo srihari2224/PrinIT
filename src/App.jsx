@@ -6,7 +6,9 @@ import VideoModal from "./components/VideoModal"
 import "./App.css"
 
 // Import images
-import iphoneImage from "./assets/images/iphonee.jpg"
+import iphoneImage from "./assets/images/qrcode.png"
+import pdfImage from "./assets/images/pdf.png";
+
 
 function App() {
   const navigate = useNavigate()
@@ -26,7 +28,7 @@ function App() {
     // Set new timer for 30 seconds
     inactivityTimerRef.current = setTimeout(() => {
       setShowVideoModal(true)
-    }, 30000) // 30 seconds
+    }, 90000) // 30 seconds
   }
 
   // Set up activity listeners
@@ -68,56 +70,88 @@ function App() {
 
   return (
     <div className="main-screen">
-      <div className="navibar">
-        <div className="logo" onClick={() => navigate("/")}>
-          <span className="home">HOME</span>
-          <span className="num1">25</span>
-        </div>
-      </div>
 
-      <div className="content-row">
-        <div className="right-box">
-          <div className="text-and-image">
-            <div className="box">
+
+        <div className="navibar">
+          <div className="logo" onClick={() => navigate("/")}>
+            <span className="home">HOME</span>
+            <span className="num1">25</span>
+          </div>
+        </div>
+
+
+        <div className="box">
               <h1 className="hover-text">
-                <span className="text kiosk-text">PRINTING </span>
-                <span className="glassy-text meets-text">starts</span>
+                <span className="text kiosk-text">File Uploader</span>
+                {/* <span className="glassy-text meets-text">STARTS</span> */}
               </h1>
-            </div>
-
-            <div className="image">
-              <img className="qr-image" src={iphoneImage || "/placeholder.svg"} alt="QR Code" />
-            </div>
-          </div>
-
-          <div className="bottombox">
-            <label htmlFor="fileUpload" className="upload-label">
-              Choose Files
-            </label>
-
-            <input
-              className="file-input"
-              id="fileUpload"
-              type="file"
-              multiple
-              onChange={(e) => {
-                const files = Array.from(e.target.files)
-                if (files.length > 0) {
-                  navigate("/files", { state: { files } })
-                }
-              }}
-            />
-            <div className="blank-paper">
-              <button id="blank" onClick={() => navigate("/blank-papers")}>
-                Blank Papers
-              </button>
-            </div>
-          </div>
         </div>
-      </div>
 
-      {/* Video Advertisement Modal for Inactivity */}
+
+        <div className="right-box">
+          {/* QR Code Section */}
+          <div className="image-section">
+            <div className="image">
+              <img
+                className="qr-image"
+                src={iphoneImage || "/placeholder.svg"}
+                alt="QR Code"
+              />
+            </div>
+          </div>
+
+          {/* PDF Converter Trigger Section */}
+          <div className="iframe-section">
+            <img
+              src={pdfImage}
+              alt="PDF Convert"
+              className="pdf-icon"
+              onClick={() =>
+                window.open(
+                  "https://www.canva.com/features/word-to-pdf-converter/",
+                  "_blank"
+                )
+              }
+            />
+          </div>
+
+        </div>
+
+
+
+
+
+        <div className="bottombox">
+          <label htmlFor="fileUpload" className="upload-label">
+            Choose Files
+          </label>
+
+          <input
+            className="file-input"
+            id="fileUpload"
+            type="file"
+            multiple
+            onChange={(e) => {
+              const files = Array.from(e.target.files)
+              if (files.length > 0) {
+                navigate("/files", { state: { files } })
+              }
+            }}
+          />
+
+          
+          {/* <div className="blank-paper">
+            <button id="blank" onClick={() => navigate("/blank-papers")}>
+              Blank Papers
+            </button>
+          </div> */}
+        </div>
+
+
+
       <VideoModal isOpen={showVideoModal} onClose={handleCloseVideo} autoPlay={true} />
+
+
     </div>
   )
 }
